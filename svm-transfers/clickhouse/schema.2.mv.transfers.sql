@@ -4,14 +4,12 @@ COMMENT 'SPL Token 2022 transfers';
 -- SPL Token Transfers --
 ALTER TABLE transfers
     -- require `decimals` to be present for token transfers
-    DROP COLUMN IF EXISTS decimals,
     DROP COLUMN IF EXISTS decimals_raw,
     ADD COLUMN decimals Nullable(UInt8),
 
     -- authority --
-    DROP COLUMN IF EXISTS multisig_authority,
     DROP COLUMN IF EXISTS multisig_authority_raw,
-    ADD COLUMN multisig_authority      Array(String),
+    ADD COLUMN multisig_authority Array(String),
 
     -- Indexes --
     ADD INDEX IF NOT EXISTS idx_amount (amount) TYPE minmax GRANULARITY 1,
@@ -35,8 +33,8 @@ SELECT
     * EXCEPT (decimals_raw, multisig_authority_raw),
 
     -- computed fields --
-    decimals AS decimals,
-    multisig_authority AS multisig_authority
+    string_to_uint8(decimals_raw) AS decimals,
+    string_to_array(multisig_authority_raw) AS multisig_authority
 
 FROM spl_transfer
 -- ignore 0 transfers

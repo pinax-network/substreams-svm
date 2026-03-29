@@ -5,7 +5,6 @@ ALTER TABLE spl_transfer
     -- authority --
     ADD COLUMN IF NOT EXISTS authority               String,
     ADD COLUMN IF NOT EXISTS multisig_authority_raw  String,
-    ADD COLUMN IF NOT EXISTS multisig_authority      Array(String) MATERIALIZED string_to_array(multisig_authority_raw),
 
     -- events --
     ADD COLUMN IF NOT EXISTS source                  String,
@@ -14,5 +13,4 @@ ALTER TABLE spl_transfer
     ADD COLUMN IF NOT EXISTS mint                    LowCardinality(String),
 
     -- Optional
-    ADD COLUMN IF NOT EXISTS decimals_raw            String,
-    ADD COLUMN IF NOT EXISTS decimals                Nullable(UInt8) MATERIALIZED string_to_uint8(decimals_raw);
+    ADD COLUMN IF NOT EXISTS decimals_raw            String;

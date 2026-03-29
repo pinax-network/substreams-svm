@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS BASE_EVENTS (
     block_hash                  String,
     timestamp                   DateTime(0, 'UTC'),
     minute                      UInt32 MATERIALIZED toRelativeMinuteNum(timestamp),
-    version                     UInt64 MATERIALIZED to_version(block_num, transaction_index, instruction_index),
 
     -- ordering --
     transaction_index           UInt32,
@@ -42,5 +41,6 @@ CREATE TABLE IF NOT EXISTS BASE_EVENTS (
 )
 ENGINE = MergeTree
 ORDER BY (
-    timestamp, block_num
+    timestamp, block_num,
+    block_hash, transaction_index, instruction_index
 );
