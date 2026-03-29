@@ -3,7 +3,7 @@ package:
   name: pancakeswap
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: PancakeSwap DEX events for Solana.
+  description: PancakeSwap swap events for Solana.
   image: ../../image.png
 
 imports:

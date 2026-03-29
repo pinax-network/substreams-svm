@@ -3,7 +3,7 @@ package:
   name: moonshot
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Moonshot DEX events for Solana.
+  description: Moonshot trade events for Solana.
   image: ../../image.png
 
 imports:

@@ -3,7 +3,7 @@ package:
   name: lifinity
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Lifinity DEX events for Solana.
+  description: Lifinity swap events for Solana.
   image: ../../image.png
 
 imports:

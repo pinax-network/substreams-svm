@@ -3,7 +3,7 @@ package:
   name: stabble
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Stabble DEX events for Solana.
+  description: Stabble swap events for Solana.
   image: ../../image.png
 
 imports:

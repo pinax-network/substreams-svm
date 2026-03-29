@@ -3,7 +3,7 @@ package:
   name: raydium_launchpad
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Raydium Launchpad events for Solana.
+  description: Raydium Launchpad trade events for Solana.
   image: ../../../image.png
 
 imports:

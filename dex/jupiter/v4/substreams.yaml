@@ -3,7 +3,7 @@ package:
   name: jupiter_v4
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Jupiter Aggregator V4
+  description: Jupiter V4 routed swap events for Solana.
   image: ../../../image.png
 
 imports:

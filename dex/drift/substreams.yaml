@@ -3,7 +3,7 @@ package:
   name: drift
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: Drift v2 DEX events for Solana.
+  description: Drift swap events for Solana.
   image: ../../image.png
 
 imports:

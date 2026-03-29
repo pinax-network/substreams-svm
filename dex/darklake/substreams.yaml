@@ -3,7 +3,7 @@ package:
   name: darklake
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Darklake DEX events for Solana.
+  description: Darklake swap events for Solana.
   image: ../../image.png
 
 imports:

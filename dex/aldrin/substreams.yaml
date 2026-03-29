@@ -3,7 +3,7 @@ package:
   name: aldrin
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: Aldrin DEX events for Solana.
+  description: Aldrin swap events for Solana.
   image: ../../image.png
 
 imports:

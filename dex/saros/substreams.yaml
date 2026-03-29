@@ -3,7 +3,7 @@ package:
   name: saros
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: Saros DEX events for Solana.
+  description: Saros swap events for Solana.
   image: ../../image.png
 
 imports:

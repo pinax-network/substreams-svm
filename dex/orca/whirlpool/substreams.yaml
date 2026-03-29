@@ -3,7 +3,7 @@ package:
   name: orca_whirlpool
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Orca Whirlpool DEX events for Solana.
+  description: Orca Whirlpool swap events for Solana.
   image: ../../../image.png
 
 imports:

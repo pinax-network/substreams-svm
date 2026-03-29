@@ -3,7 +3,7 @@ package:
   name: solfi-v2
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: SolFi v2 DEX events for Solana.
+  description: SolFi V2 swap events for Solana.
   image: ../../image.png
 
 imports:

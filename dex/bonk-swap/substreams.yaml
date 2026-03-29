@@ -3,7 +3,7 @@ package:
   name: bonk_swap
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Bonk Swap
+  description: Bonk Swap events for Solana.
   image: ../../image.png
 
 imports:

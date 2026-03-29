@@ -3,7 +3,7 @@ package:
   name: pumpswap
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: PumpSwap AMM events for Solana.
+  description: PumpSwap trade events for Solana.
   image: ../../image.png
 
 imports:

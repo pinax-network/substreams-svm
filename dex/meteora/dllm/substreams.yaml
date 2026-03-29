@@ -3,7 +3,7 @@ package:
   name: meteora_dllm
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Meteora DLMM events for Solana.
+  description: Meteora DLMM swap events for Solana.
   image: ../../../image.png
 
 imports:

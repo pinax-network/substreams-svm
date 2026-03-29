@@ -1,5 +1,14 @@
 # Raydium CLMM
 
-Parse swap events emitted by the Raydium concentrated liquidity market maker.
+This package captures concentrated liquidity swap activity from Raydium CLMM on Solana.
 
-Program ID: CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK
+## Included events
+
+- Swap events emitted by Raydium CLMM pools
+- Token movement details for each trade
+- Transaction and instruction metadata needed to place the event in context
+
+## Output
+
+- This package exposes a map_events module with decoded protocol events.
+- The output is designed to describe what happened on-chain in user-friendly terms, with transaction and instruction context where available.

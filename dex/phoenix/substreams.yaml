@@ -3,7 +3,7 @@ package:
   name: phoenix
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Phoenix DEX events for Solana.
+  description: Phoenix trade events for Solana.
   image: ../../image.png
 
 imports:

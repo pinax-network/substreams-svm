@@ -3,7 +3,7 @@ package:
   name: pumpfun_bonding_curve
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Pump.fun bonding curve events for Solana.
+  description: Pump.fun bonding curve trade events for Solana.
   image: ../../../image.png
 
 imports:

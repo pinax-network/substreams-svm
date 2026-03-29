@@ -3,7 +3,7 @@ package:
   name: meteora_daam
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Meteora DAAM events for Solana.
+  description: Meteora DAAM swap events for Solana.
   image: ../../../image.png
 
 imports:

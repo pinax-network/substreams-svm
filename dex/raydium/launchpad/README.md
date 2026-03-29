@@ -1,5 +1,14 @@
 # Raydium Launchpad
 
-Substreams module to decode Raydium Launchpad trades and events.
+This package captures launchpad trading activity from Raydium on Solana.
 
-Program ID: `LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj`
+## Included events
+
+- Buy and sell events emitted by Raydium Launchpad
+- Token amount details for each trade
+- Transaction and instruction metadata needed to place the event in context
+
+## Output
+
+- This package exposes a map_events module with decoded protocol events.
+- The output is designed to describe what happened on-chain in user-friendly terms, with transaction and instruction context where available.

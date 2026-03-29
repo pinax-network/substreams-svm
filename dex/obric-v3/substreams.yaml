@@ -3,7 +3,7 @@ package:
   name: obric-v3
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: Obric v3 DEX events for Solana.
+  description: Obric V3 swap events for Solana.
   image: ../../image.png
 
 imports:

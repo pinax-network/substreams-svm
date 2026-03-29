@@ -3,7 +3,7 @@ package:
   name: pumpfun_amm
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Pump.fun AMM events for Solana.
+  description: Pump.fun AMM trade events for Solana.
   image: ../../../image.png
 
 imports:

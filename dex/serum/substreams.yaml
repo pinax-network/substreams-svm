@@ -3,7 +3,7 @@ package:
   name: serum
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: Serum DEX events for Solana.
+  description: Serum trade events for Solana.
   image: ../../image.png
 
 imports:

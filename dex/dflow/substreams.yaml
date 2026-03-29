@@ -3,7 +3,7 @@ package:
   name: dflow
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: DFlow v4 DEX events for Solana.
+  description: DFlow swap events for Solana.
   image: ../../image.png
 
 imports:

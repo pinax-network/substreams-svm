@@ -3,7 +3,7 @@ package:
   name: meteora_amm
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-solana
-  description: Meteora AMM events for Solana.
+  description: Meteora AMM swap events for Solana.
   image: ../../../image.png
 
 imports:
