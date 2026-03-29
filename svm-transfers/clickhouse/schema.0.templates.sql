@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS BASE_EVENTS (
     block_num                   UInt32,
     block_hash                  String,
     timestamp                   DateTime(0, 'UTC'),
-    version                     UInt64  MATERIALIZED to_version(block_num, transaction_index, instruction_index),
+    minute                      UInt32 MATERIALIZED toRelativeMinuteNum(timestamp),
+    version                     UInt64 MATERIALIZED to_version(block_num, transaction_index, instruction_index),
 
     -- ordering --
     transaction_index           UInt32,
@@ -22,34 +23,24 @@ CREATE TABLE IF NOT EXISTS BASE_EVENTS (
     program_id                  LowCardinality(String),
     stack_height                UInt32,
 
-    -- indexes -
+    -- indexes --
     INDEX idx_timestamp         (timestamp)         TYPE minmax                 GRANULARITY 1,
     INDEX idx_block_num         (block_num)         TYPE minmax                 GRANULARITY 1,
-    INDEX idx_program_id        (program_id)        TYPE set(8)                 GRANULARITY 1,
-    INDEX idx_fee_payer         (fee_payer)         TYPE bloom_filter(0.005)    GRANULARITY 1,
-    INDEX idx_signature         (signature)         TYPE bloom_filter(0.005)    GRANULARITY 1,
-    INDEX idx_signer            (signer)            TYPE bloom_filter(0.005)    GRANULARITY 1
+
+    -- projections --
+    PROJECTION prj_fee_payer_count ( SELECT fee_payer, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY fee_payer ),
+    PROJECTION prj_signer_count ( SELECT signer, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY signer ),
+    PROJECTION prj_program_id_count ( SELECT program_id, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY program_id ),
+
+    -- minute + timestamp --
+    PROJECTION prj_signature_by_timestamp ( SELECT signature, minute, timestamp GROUP BY signature, minute, timestamp ),
+
+    -- minute --
+    PROJECTION prj_fee_payer_by_minute ( SELECT fee_payer, minute GROUP BY fee_payer, minute ),
+    PROJECTION prj_signer_by_minute ( SELECT signer, minute GROUP BY signer, minute ),
+    PROJECTION prj_program_id_by_minute ( SELECT program_id, minute GROUP BY program_id, minute )
 )
-ENGINE = ReplacingMergeTree
--- TTL to automatically clean up old data
--- production tables are derived from MV's on these base tables
-TTL timestamp + INTERVAL 1 DAY
+ENGINE = MergeTree
 ORDER BY (
-    timestamp, block_num,
-    block_hash, transaction_index, instruction_index
-);
-
-ALTER TABLE BASE_EVENTS
-  MODIFY SETTING deduplicate_merge_projection_mode = 'rebuild';
-
-ALTER TABLE BASE_EVENTS
-    ADD PROJECTION IF NOT EXISTS prj_signature (SELECT signature, timestamp, _part_offset ORDER BY (signature, timestamp)),
-    ADD PROJECTION IF NOT EXISTS prj_fee_payer (SELECT fee_payer, timestamp, _part_offset ORDER BY (fee_payer, timestamp)),
-    ADD PROJECTION IF NOT EXISTS prj_signer (SELECT signer, timestamp, _part_offset ORDER BY (signer, timestamp));
-
-CREATE TABLE IF NOT EXISTS base_transactions AS BASE_EVENTS;
-ALTER TABLE base_transactions
-    DROP PROJECTION IF EXISTS prj_part_program_id,
-    DROP INDEX IF EXISTS idx_program_id,
-    DROP COLUMN IF EXISTS program_id,
-    DROP COLUMN IF EXISTS stack_height;
+    timestamp, block_num
+)
