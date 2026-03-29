@@ -41,5 +41,6 @@ CREATE TABLE IF NOT EXISTS BASE_EVENTS (
 )
 ENGINE = MergeTree
 ORDER BY (
-    timestamp, block_num, transaction_index, instruction_index
+    timestamp, block_num,
+    transaction_index, instruction_index
 );
