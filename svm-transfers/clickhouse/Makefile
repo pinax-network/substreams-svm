@@ -3,8 +3,17 @@ START_BLOCK ?= 350000000
 STOP_BLOCK ?= 350002000
 PARALLEL_JOBS ?= 500
 
+.PHONY: schema
+schema:
+	@echo "-- This file is generated. Do not edit." > schema.sql
+	@echo "" >> schema.sql
+	@for f in $$(ls schema.*.sql 2>/dev/null | sort); do \
+		cat "$$f" >> schema.sql; \
+		echo "" >> schema.sql; \
+	done
+
 .PHONY: pack
-pack:
+pack: schema
 	substreams pack
 
 .PHONY: dev
@@ -14,12 +23,3 @@ dev:
 .PHONY: setup
 setup: pack
 	substreams-sink-sql setup clickhouse://default:@localhost:9000/default substreams.yaml
-
-.PHONY: schema
-schema:
-	@echo "-- This file is generated. Do not edit." > schema.sql
-	@echo "" >> schema.sql
-	@for f in $$(ls schema.*.sql 2>/dev/null | sort); do \
-		cat "$$f" >> schema.sql; \
-		echo "" >> schema.sql; \
-	done
