@@ -1,6 +1,7 @@
 ENDPOINT ?= solana.substreams.pinax.network:443
-START_BLOCK ?= 350527973
-PARALLEL_JOBS ?= 500
+START_BLOCK ?= 400000000
+STOP_BLOCK ?= 400005000
+PARALLEL_JOBS ?= 100
 
 .PHONY: build
 build:
@@ -10,18 +11,10 @@ build:
 pack: build
 	substreams pack
 
-.PHONY: noop
-noop: build
-	substreams-sink-noop $(ENDPOINT) substreams.yaml map_events -H "X-Sf-Substreams-Parallel-Jobs: $(PARALLEL_JOBS)" $(START_BLOCK):
-
 .PHONY: gui
 gui: build
-	substreams gui -e $(ENDPOINT) substreams.yaml map_events -s -1000 -t 0 --network solana
+	substreams gui -e $(ENDPOINT) substreams.yaml map_events -s $(START_BLOCK) -t $(STOP_BLOCK) --network solana
 
 .PHONY: prod
 prod: build
-	substreams gui -e $(ENDPOINT) substreams.yaml map_events -s $(START_BLOCK) -t 0 --limit-processed-blocks 0 --production-mode  -H "X-Sf-Substreams-Parallel-Jobs: $(PARALLEL_JOBS)"
-
-.PHONY: index
-index:
-	substreams gui -e $(ENDPOINT) https://github.com/streamingfast/substreams-foundational-modules/releases/download/substreams-v0.3.3/solana-common-v0.3.3.spkg program_ids_without_votes -s $(START_BLOCK) -t 0 --limit-processed-blocks 0 --production-mode  -H "X-Sf-Substreams-Parallel-Jobs: $(PARALLEL_JOBS)"
+	substreams gui -e $(ENDPOINT) substreams.yaml map_events -s $(START_BLOCK) -t $(STOP_BLOCK) --limit-processed-blocks 0 --production-mode  -H "X-Sf-Substreams-Parallel-Jobs: $(PARALLEL_JOBS)"

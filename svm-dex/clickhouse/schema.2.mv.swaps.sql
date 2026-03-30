@@ -30,8 +30,7 @@ ALTER TABLE swaps
     PROJECTION prj_amm_pool_by_minute ( SELECT amm_pool, minute GROUP BY amm_pool, minute ),
     PROJECTION prj_user_by_minute ( SELECT user, minute GROUP BY user, minute ),
     PROJECTION prj_input_mint_by_minute ( SELECT input_mint, minute GROUP BY input_mint, minute ),
-    PROJECTION prj_output_mint_by_minute ( SELECT output_mint, minute GROUP BY output_mint, minute )
-;
+    PROJECTION prj_output_mint_by_minute ( SELECT output_mint, minute GROUP BY output_mint, minute );
 
 /* ──────────────────────────────────────────────────────────────────────────
    1.  Raydium-AMM → swaps

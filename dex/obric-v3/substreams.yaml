@@ -12,7 +12,7 @@ imports:
 binaries:
   default:
     type: wasm/rust-v1+wasm-bindgen-shims
-    file: ../../target/wasm32-unknown-unknown/release/obric-v3.wasm
+    file: ../../target/wasm32-unknown-unknown/release/obric_v3.wasm
 
 protobuf:
   files:
@@ -30,6 +30,6 @@ modules:
       query:
         string: "program:ob2wXVFGiWXkPwYv8CSpPMm5m3NR7DjSrVJAHGSb9Gu"
     output:
-      type: proto:obric-v3.v1.Events
+      type: proto:obric.v3.v1.Events
 
 network: solana

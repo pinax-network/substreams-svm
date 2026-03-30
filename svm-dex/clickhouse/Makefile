@@ -1,19 +1,7 @@
 ENDPOINT ?= solana.substreams.pinax.network:443
-START_BLOCK ?= 0
-STOP_BLOCK ?= 363010000
+START_BLOCK ?= 350000000
+STOP_BLOCK ?= 350002000
 PARALLEL_JOBS ?= 500
-
-.PHONY: pack
-pack:
-	substreams pack
-
-.PHONY: dev
-dev:
-	substreams-sink-sql run clickhouse://default:default@localhost:9000/default substreams.yaml -e $(ENDPOINT) $(START_BLOCK):$(STOP_BLOCK) --undo-buffer-size 100 --on-module-hash-mistmatch=warn --batch-block-flush-interval 100 --infinite-retry --development-mode
-
-.PHONY: setup
-setup: pack
-	substreams-sink-sql setup clickhouse://default:default@localhost:9000/default substreams.yaml
 
 .PHONY: schema
 schema:
@@ -23,3 +11,15 @@ schema:
 		cat "$$f" >> schema.sql; \
 		echo "" >> schema.sql; \
 	done
+
+.PHONY: pack
+pack: schema
+	substreams pack
+
+.PHONY: dev
+dev:
+	substreams-sink-sql run clickhouse://default:@localhost:9000/default substreams.yaml -e $(ENDPOINT) $(START_BLOCK):$(STOP_BLOCK) --undo-buffer-size 100 --on-module-hash-mistmatch=warn --batch-block-flush-interval 100 --infinite-retry
+
+.PHONY: setup
+setup: pack
+	substreams-sink-sql setup clickhouse://default:@localhost:9000/default substreams.yaml

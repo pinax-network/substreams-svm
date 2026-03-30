@@ -12,7 +12,7 @@ imports:
 binaries:
   default:
     type: wasm/rust-v1+wasm-bindgen-shims
-    file: ../../target/wasm32-unknown-unknown/release/solfi-v2.wasm
+    file: ../../target/wasm32-unknown-unknown/release/solfi_v2.wasm
 
 protobuf:
   files:
@@ -30,6 +30,6 @@ modules:
       query:
         string: "program:SV2EYYJyRz2YhfXwXnhNAevDEui5Q6yrfyo13WtupPF"
     output:
-      type: proto:solfi-v2.v1.Events
+      type: proto:solfi.v2.v1.Events
 
 network: solana
