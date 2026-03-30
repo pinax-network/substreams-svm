@@ -11,7 +11,7 @@ imports:
   database_changes: ../spkg/substreams-sink-database-changes-v4.0.0.spkg
   sql: ../spkg/substreams-sink-sql-protodefs-v1.0.7.spkg
 
-  dex_swaps: ../spkg/dex-swaps-v0.1.0.spkg
+  dex_swaps: ../spkg/dex-swaps-v0.4.0.spkg
 
 binaries:
   default:
