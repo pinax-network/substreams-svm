@@ -2,6 +2,9 @@
 mod jupiter_v4;
 mod jupiter_v6;
 mod logs;
+mod boop;
+mod darklake;
+mod dumpfun;
 mod meteora_dllm;
 mod orca_whirlpool;
 mod pumpfun;
@@ -31,6 +34,9 @@ fn map_events(block: Block) -> Result<pb::Events, Error> {
 fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let tx_meta = tx.meta.as_ref()?;
     let mut swaps = Vec::new();
+    let mut boop_state = boop::State::new();
+    let mut darklake_state = darklake::State::new();
+    let mut dumpfun_state = dumpfun::State::new();
     let mut pumpfun_pending = None;
     let mut pumpfun_amm_pending = None;
     let mut meteora_dllm_pending = None;
@@ -44,6 +50,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         if let Some(swap) = jupiter_v6::decode_instruction(&tx, &instruction) {
             swaps.push(swap);
         }
+        darklake_state.handle_instruction(&instruction);
         if let Some(swap) = pumpfun::handle_instruction(&mut pumpfun_pending, &instruction) {
             swaps.push(swap);
         }
@@ -66,6 +73,15 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let mut jupiter_v4_state = jupiter_v4::State::new();
     for log_message in tx_meta.log_messages.iter() {
         if let Some(swap) = jupiter_v4_state.handle_log(&tx, log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = boop_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = darklake_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = dumpfun_state.handle_log(log_message) {
             swaps.push(swap);
         }
         if let Some(swap) = raydium_amm_v4_state.handle_log(log_message) {
