@@ -11,16 +11,27 @@ ALTER TABLE swaps
     ADD COLUMN IF NOT EXISTS output_mint                 String COMMENT 'Output token mint address',
     ADD COLUMN IF NOT EXISTS output_amount               UInt64 COMMENT 'Amount of output tokens received',
 
-    -- INDEX for common fields --
-    ADD INDEX IF NOT EXISTS idx_amm               (amm)               TYPE set(256)               GRANULARITY 1, -- 50 unique AMMs per 2x granules when using Jupiter V6
-    ADD INDEX IF NOT EXISTS idx_amm_pool          (amm_pool)          TYPE bloom_filter(0.005)    GRANULARITY 1, -- 300 unique pools per granule
-    ADD INDEX IF NOT EXISTS idx_user              (user)              TYPE bloom_filter(0.005)    GRANULARITY 1, -- 2500 unique users per granule
-    ADD INDEX IF NOT EXISTS idx_input_mint        (input_mint)        TYPE bloom_filter(0.005)    GRANULARITY 1, -- 500 unique mints per granule
-    ADD INDEX IF NOT EXISTS idx_output_mint       (output_mint)       TYPE bloom_filter(0.005)    GRANULARITY 1, -- 500 unique mints per granule
+    -- indexes --
     ADD INDEX IF NOT EXISTS idx_input_amount      (input_amount)      TYPE minmax                 GRANULARITY 1,
     ADD INDEX IF NOT EXISTS idx_output_amount     (output_amount)     TYPE minmax                 GRANULARITY 1,
-    ADD INDEX IF NOT EXISTS idx_mint_pair         (input_mint, output_mint)    TYPE bloom_filter(0.005)    GRANULARITY 1,
-    ADD INDEX IF NOT EXISTS idx_mint_pair_inverse (output_mint, input_mint)    TYPE bloom_filter(0.005)    GRANULARITY 1;
+
+    -- projections --
+    PROJECTION prj_amm_count ( SELECT amm, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY amm ),
+    PROJECTION prj_amm_pool_count ( SELECT amm_pool, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY amm_pool ),
+    PROJECTION prj_user_count ( SELECT user, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY user ),
+    PROJECTION prj_input_mint_count ( SELECT input_mint, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY input_mint ),
+    PROJECTION prj_output_mint_count ( SELECT output_mint, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY output_mint ),
+
+    -- minute + timestamp --
+    PROJECTION prj_signature_by_timestamp ( SELECT signature, minute, timestamp GROUP BY signature, minute, timestamp ),
+
+    -- minute --
+    PROJECTION prj_amm_by_minute ( SELECT amm, minute GROUP BY amm, minute ),
+    PROJECTION prj_amm_pool_by_minute ( SELECT amm_pool, minute GROUP BY amm_pool, minute ),
+    PROJECTION prj_user_by_minute ( SELECT user, minute GROUP BY user, minute ),
+    PROJECTION prj_input_mint_by_minute ( SELECT input_mint, minute GROUP BY input_mint, minute ),
+    PROJECTION prj_output_mint_by_minute ( SELECT output_mint, minute GROUP BY output_mint, minute )
+;
 
 /* ──────────────────────────────────────────────────────────────────────────
    1.  Raydium-AMM → swaps
