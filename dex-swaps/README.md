@@ -39,3 +39,14 @@ Current coverage:
 - Raydium Launchpad
 - Meteora DAAM
 - Meteora DLMM
+
+Currently excluded:
+
+- Meteora AMM
+  Current decoded swap shape does not expose canonical token mint identities for normalization.
+- Saros
+  Current decode exposes intent fields like `amount_in` and `minimum_amount_out`, but not the user, pool, mints, or finalized output amount needed for normalized swaps.
+- Sanctum
+  Current decode exposes only the swap amount and does not provide normalized pool, mint, or finalized output fields.
+- DFlow
+  Current decoder is a placeholder that treats any instruction as a swap and does not expose reliable normalized swap fields.
