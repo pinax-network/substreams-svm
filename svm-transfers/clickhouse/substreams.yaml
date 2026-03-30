@@ -7,7 +7,7 @@ package:
   image: ../../image.png
 
 imports:
-  db: ../substreams.yaml
+  db: ../../spkg/svm-transfers-v0.3.0.spkg
 
 modules:
   - name: db_out

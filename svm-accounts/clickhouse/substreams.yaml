@@ -1,13 +1,13 @@
 specVersion: v0.1.0
 package:
   name: svm_clickhouse_accounts
-  version: v1.0.0
+  version: v0.3.0
   url: https://github.com/pinax-network/substreams-svm
   description: SPL & SPL-2022 token account events for Solana blockchains (ClickHouse).
   image: ../../image.png
 
 imports:
-  db: ../substreams.yaml
+  db: ../../spkg/svm-accounts-v0.3.0.spkg
 
 modules:
   - name: db_out

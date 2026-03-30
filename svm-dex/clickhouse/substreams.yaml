@@ -7,7 +7,7 @@ package:
   image: ../../image.png
 
 imports:
-  db: ../substreams.yaml
+  db: ../../spkg/svm-dex-v0.4.0.spkg
 
 modules:
   - name: db_out
