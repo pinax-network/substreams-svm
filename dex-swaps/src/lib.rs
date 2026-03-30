@@ -1,6 +1,7 @@
 // mod decode;
 mod jupiter_v4;
 mod jupiter_v6;
+mod logs;
 mod meteora_dllm;
 mod orca_whirlpool;
 mod pumpfun;
@@ -13,18 +14,7 @@ mod raydium_launchpad;
 use common::solana::{get_fee_payer, get_signers};
 use proto::pb::dex::swaps::v1 as pb;
 use substreams::errors::Error;
-use substreams_solana::pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction};
-
-use crate::jupiter_v4::decode_jupiter_v4_transaction;
-use crate::jupiter_v6::decode_jupiter_v6_transaction;
-use crate::meteora_dllm::decode_meteora_dllm_transaction;
-use crate::orca_whirlpool::decode_orca_whirlpool_transaction;
-use crate::pumpfun::decode_pumpfun_transaction;
-use crate::pumpfun_amm::decode_pumpfun_amm_transaction;
-use crate::raydium_amm_v4::decode_raydium_amm_v4_transaction;
-use crate::raydium_clmm::decode_raydium_clmm_transaction;
-use crate::raydium_cpmm::decode_raydium_cpmm_transaction;
-use crate::raydium_launchpad::decode_raydium_launchpad_transaction;
+use substreams_solana::{pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction}};
 
 pub(crate) const SOL_MINT: [u8; 32] = [
     6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220,
@@ -41,17 +31,56 @@ fn map_events(block: Block) -> Result<pb::Events, Error> {
 fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let tx_meta = tx.meta.as_ref()?;
     let mut swaps = Vec::new();
+    let mut pumpfun_pending = None;
+    let mut pumpfun_amm_pending = None;
+    let mut meteora_dllm_pending = None;
+    let mut raydium_launchpad_pending = None;
+    let mut raydium_amm_v4_state = raydium_amm_v4::State::new();
+    let mut raydium_clmm_state = raydium_clmm::State::new();
+    let mut raydium_cpmm_state = raydium_cpmm::State::new();
+    let mut orca_whirlpool_state = orca_whirlpool::State::new();
 
-    swaps.extend(decode_jupiter_v6_transaction(&tx));
-    swaps.extend(decode_jupiter_v4_transaction(&tx));
-    swaps.extend(decode_meteora_dllm_transaction(&tx));
-    swaps.extend(decode_orca_whirlpool_transaction(&tx));
-    swaps.extend(decode_pumpfun_transaction(&tx));
-    swaps.extend(decode_pumpfun_amm_transaction(&tx));
-    swaps.extend(decode_raydium_amm_v4_transaction(&tx));
-    swaps.extend(decode_raydium_clmm_transaction(&tx));
-    swaps.extend(decode_raydium_cpmm_transaction(&tx));
-    swaps.extend(decode_raydium_launchpad_transaction(&tx));
+    for instruction in tx.walk_instructions() {
+        if let Some(swap) = jupiter_v6::decode_instruction(&tx, &instruction) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = pumpfun::handle_instruction(&mut pumpfun_pending, &instruction) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = pumpfun_amm::handle_instruction(&mut pumpfun_amm_pending, &instruction) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = meteora_dllm::handle_instruction(&mut meteora_dllm_pending, &instruction) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = raydium_launchpad::handle_instruction(&mut raydium_launchpad_pending, &instruction) {
+            swaps.push(swap);
+        }
+
+        raydium_amm_v4_state.handle_instruction(&instruction);
+        raydium_clmm_state.handle_instruction(&instruction);
+        raydium_cpmm_state.handle_instruction(&instruction);
+        orca_whirlpool_state.handle_instruction(&instruction);
+    }
+
+    let mut jupiter_v4_state = jupiter_v4::State::new();
+    for log_message in tx_meta.log_messages.iter() {
+        if let Some(swap) = jupiter_v4_state.handle_log(&tx, log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = raydium_amm_v4_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = raydium_clmm_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = raydium_cpmm_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = orca_whirlpool_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+    }
 
     if swaps.is_empty() {
         return None;

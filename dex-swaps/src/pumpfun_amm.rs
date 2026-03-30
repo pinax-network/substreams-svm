@@ -1,54 +1,8 @@
 use proto::pb::dex::swaps::v1 as pb;
-use substreams_solana::{block_view::InstructionView, pb::sf::solana::r#type::v1::ConfirmedTransaction};
+use substreams_solana::block_view::InstructionView;
 use substreams_solana_idls::pumpfun::amm as pumpfun_amm;
 
-pub(crate) fn decode_pumpfun_amm_transaction(tx: &ConfirmedTransaction) -> Vec<pb::Swap> {
-    let mut swaps = Vec::new();
-    let mut pending_trade = None;
-
-    for instruction in tx.walk_instructions() {
-        let program_id = instruction.program_id().0;
-        if program_id != &pumpfun_amm::PROGRAM_ID {
-            continue;
-        }
-
-        if let Some(trade) = decode_trade_instruction(&instruction) {
-            pending_trade = Some(trade);
-            continue;
-        }
-
-        let Some(event) = decode_trade_event(&instruction) else {
-            continue;
-        };
-
-        let Some(trade) = pending_trade.take() else {
-            continue;
-        };
-
-        let (input_amount, output_amount) = if event.is_buy {
-            (event.quote_amount, event.base_amount)
-        } else {
-            (event.base_amount, event.quote_amount)
-        };
-
-        swaps.push(pb::Swap {
-            protocol: pb::Protocol::PumpfunAmm as i32,
-            program_id: pumpfun_amm::PROGRAM_ID.to_vec(),
-            stack_height: instruction.stack_height(),
-            amm: pumpfun_amm::PROGRAM_ID.to_vec(),
-            amm_pool: trade.pool,
-            user: event.user,
-            input_mint: if event.is_buy { trade.quote_mint.clone() } else { trade.base_mint.clone() },
-            input_amount,
-            output_mint: if event.is_buy { trade.base_mint } else { trade.quote_mint },
-            output_amount,
-        });
-    }
-
-    swaps
-}
-
-struct PendingTrade {
+pub(crate) struct PendingTrade {
     pool: Vec<u8>,
     base_mint: Vec<u8>,
     quote_mint: Vec<u8>,
@@ -59,6 +13,39 @@ struct TradeEvent {
     user: Vec<u8>,
     base_amount: u64,
     quote_amount: u64,
+}
+
+pub(crate) fn handle_instruction(pending_trade: &mut Option<PendingTrade>, instruction: &InstructionView) -> Option<pb::Swap> {
+    let program_id = instruction.program_id().0;
+    if program_id != &pumpfun_amm::PROGRAM_ID {
+        return None;
+    }
+
+    if let Some(trade) = decode_trade_instruction(instruction) {
+        *pending_trade = Some(trade);
+        return None;
+    }
+
+    let event = decode_trade_event(instruction)?;
+    let trade = pending_trade.take()?;
+    let (input_amount, output_amount) = if event.is_buy {
+        (event.quote_amount, event.base_amount)
+    } else {
+        (event.base_amount, event.quote_amount)
+    };
+
+    Some(pb::Swap {
+        protocol: pb::Protocol::PumpfunAmm as i32,
+        program_id: pumpfun_amm::PROGRAM_ID.to_vec(),
+        stack_height: instruction.stack_height(),
+        amm: pumpfun_amm::PROGRAM_ID.to_vec(),
+        amm_pool: trade.pool,
+        user: event.user,
+        input_mint: if event.is_buy { trade.quote_mint.clone() } else { trade.base_mint.clone() },
+        input_amount,
+        output_mint: if event.is_buy { trade.base_mint } else { trade.quote_mint },
+        output_amount,
+    })
 }
 
 fn decode_trade_instruction(instruction: &InstructionView) -> Option<PendingTrade> {

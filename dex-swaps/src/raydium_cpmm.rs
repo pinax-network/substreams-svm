@@ -1,36 +1,55 @@
-use common::solana::{is_failed, is_invoke, is_success, parse_invoke_depth, parse_program_data, parse_program_id};
+use common::solana::parse_program_data;
 use proto::pb::dex::swaps::v1 as pb;
-use substreams_solana::{block_view::InstructionView, pb::sf::solana::r#type::v1::{ConfirmedTransaction, TransactionStatusMeta}};
+use substreams_solana::block_view::InstructionView;
 use substreams_solana_idls::raydium;
 
-pub(crate) fn decode_raydium_cpmm_transaction(tx: &ConfirmedTransaction) -> Vec<pb::Swap> {
-    let Some(tx_meta) = tx.meta.as_ref() else {
-        return Vec::new();
-    };
+use crate::logs::{scoped_program_log, ProgramLog};
 
-    let instructions = tx.walk_instructions().filter_map(decode_cpmm_instruction).collect::<Vec<_>>();
-    let logs = decode_cpmm_logs(tx_meta);
+pub(crate) struct State {
+    pending: Vec<InstructionSwap>,
+    next_index: usize,
+    is_invoked: bool,
+}
 
-    if instructions.len() != logs.len() {
-        return Vec::new();
+impl State {
+    pub(crate) fn new() -> Self {
+        Self {
+            pending: Vec::new(),
+            next_index: 0,
+            is_invoked: false,
+        }
     }
 
-    instructions
-        .into_iter()
-        .zip(logs)
-        .map(|(instruction, log)| pb::Swap {
+    pub(crate) fn handle_instruction(&mut self, ix: &InstructionView) {
+        if let Some(swap) = decode_cpmm_instruction(ix) {
+            self.pending.push(swap);
+        }
+    }
+
+    pub(crate) fn handle_log(&mut self, log_message: &str) -> Option<pb::Swap> {
+        let ProgramLog::Data(log_message) =
+            scoped_program_log(log_message, &raydium::cpmm::PROGRAM_ID.to_vec(), &mut self.is_invoked)?
+        else {
+            return None;
+        };
+
+        let log = parse_log_data(log_message)?;
+        let instruction = self.pending.get(self.next_index)?;
+        self.next_index += 1;
+
+        Some(pb::Swap {
             protocol: pb::Protocol::RaydiumCpmm as i32,
             program_id: raydium::cpmm::PROGRAM_ID.to_vec(),
             stack_height: instruction.stack_height,
             amm: raydium::cpmm::PROGRAM_ID.to_vec(),
-            amm_pool: instruction.pool_state,
-            user: instruction.payer,
-            input_mint: log.input_mint.unwrap_or(instruction.input_token_mint),
+            amm_pool: instruction.pool_state.clone(),
+            user: instruction.payer.clone(),
+            input_mint: log.input_mint.unwrap_or_else(|| instruction.input_token_mint.clone()),
             input_amount: log.input_amount,
-            output_mint: log.output_mint.unwrap_or(instruction.output_token_mint),
+            output_mint: log.output_mint.unwrap_or_else(|| instruction.output_token_mint.clone()),
             output_amount: log.output_amount,
         })
-        .collect()
+    }
 }
 
 struct InstructionSwap {
@@ -48,7 +67,7 @@ struct LogSwap {
     output_mint: Option<Vec<u8>>,
 }
 
-fn decode_cpmm_instruction(ix: InstructionView) -> Option<InstructionSwap> {
+fn decode_cpmm_instruction(ix: &InstructionView) -> Option<InstructionSwap> {
     let program_id = ix.program_id().0;
     if program_id != &raydium::cpmm::PROGRAM_ID {
         return None;
@@ -79,31 +98,7 @@ fn decode_cpmm_instruction(ix: InstructionView) -> Option<InstructionSwap> {
     }
 }
 
-fn decode_cpmm_logs(tx_meta: &TransactionStatusMeta) -> Vec<LogSwap> {
-    let mut logs = Vec::new();
-    let mut is_invoked = false;
-
-    for log_message in tx_meta.log_messages.iter() {
-        let matches_program = parse_program_id(log_message).map_or(false, |id| id == raydium::cpmm::PROGRAM_ID.to_vec());
-
-        if is_invoke(log_message) && matches_program {
-            if let Some(log) = parse_log_data(log_message, parse_invoke_depth(log_message).unwrap_or_default()) {
-                logs.push(log);
-            }
-            is_invoked = true;
-        } else if matches_program && (is_success(log_message) || is_failed(log_message)) {
-            is_invoked = false;
-        } else if is_invoked {
-            if let Some(log) = parse_log_data(log_message, 0) {
-                logs.push(log);
-            }
-        }
-    }
-
-    logs
-}
-
-fn parse_log_data(log_message: &str, _invoke_depth: u32) -> Option<LogSwap> {
+fn parse_log_data(log_message: &str) -> Option<LogSwap> {
     let data = parse_program_data(log_message)?;
     match raydium::cpmm::events::unpack(data.as_slice()) {
         Ok(raydium::cpmm::events::RaydiumCpmmEvent::SwapEventV1(event)) => Some(LogSwap {
