@@ -7,7 +7,7 @@ package:
   image: ../image.png
 
 imports:
-  jupiter_v6: ../spkg/jupiter-v6-v0.4.0.spkg
+  solana_common: ../spkg/solana-common-v0.4.0.spkg
 
 binaries:
   default:
@@ -24,7 +24,7 @@ modules:
   - name: map_events
     kind: map
     inputs:
-      - map: jupiter_v6:map_events
+      - map: solana_common:blocks_without_votes
     output:
       type: proto:dex.swaps.v1.Events
 

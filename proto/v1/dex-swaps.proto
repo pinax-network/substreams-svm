@@ -2,6 +2,24 @@ syntax = "proto3";
 
 package dex.swaps.v1;
 
+enum Protocol {
+  PROTOCOL_UNSPECIFIED = 0;
+  PROTOCOL_BOOP = 1;
+  PROTOCOL_DARKLAKE = 2;
+  PROTOCOL_DUMPFUN = 3;
+  PROTOCOL_JUPITER_V4 = 4;
+  PROTOCOL_JUPITER_V6 = 5;
+  PROTOCOL_METEORA_DAAM = 6;
+  PROTOCOL_METEORA_DLLM = 7;
+  PROTOCOL_ORCA_WHIRLPOOL = 8;
+  PROTOCOL_PUMPFUN = 9;
+  PROTOCOL_PUMPFUN_AMM = 10;
+  PROTOCOL_RAYDIUM_AMM_V4 = 11;
+  PROTOCOL_RAYDIUM_CLMM = 12;
+  PROTOCOL_RAYDIUM_CPMM = 13;
+  PROTOCOL_RAYDIUM_LAUNCHPAD = 14;
+}
+
 message Events {
   repeated Transaction transactions = 1;
 }
@@ -16,11 +34,12 @@ message Transaction {
 }
 
 message Swap {
-  bytes amm = 1;
-  bytes amm_pool = 2;
-  bytes user = 3;
-  bytes input_mint = 4;
-  uint64 input_amount = 5;
-  bytes output_mint = 6;
-  uint64 output_amount = 7;
+  Protocol protocol = 1;
+  bytes amm = 2;
+  bytes amm_pool = 3;
+  bytes user = 4;
+  bytes input_mint = 5;
+  uint64 input_amount = 6;
+  bytes output_mint = 7;
+  uint64 output_amount = 8;
 }

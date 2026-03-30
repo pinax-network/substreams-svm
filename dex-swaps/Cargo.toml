@@ -8,5 +8,8 @@ version = { workspace = true }
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+common = { path = "../common" }
 substreams = { workspace = true }
+substreams-solana = { workspace = true }
+substreams-solana-idls = { workspace = true }
 proto = { path = "../proto" }

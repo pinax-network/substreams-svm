@@ -25,19 +25,61 @@ pub struct Transaction {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Swap {
-    #[prost(bytes="vec", tag="1")]
-    pub amm: ::prost::alloc::vec::Vec<u8>,
+    #[prost(enumeration="Protocol", tag="1")]
+    pub protocol: i32,
     #[prost(bytes="vec", tag="2")]
-    pub amm_pool: ::prost::alloc::vec::Vec<u8>,
+    pub amm: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes="vec", tag="3")]
-    pub user: ::prost::alloc::vec::Vec<u8>,
+    pub amm_pool: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes="vec", tag="4")]
+    pub user: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="vec", tag="5")]
     pub input_mint: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag="5")]
+    #[prost(uint64, tag="6")]
     pub input_amount: u64,
-    #[prost(bytes="vec", tag="6")]
+    #[prost(bytes="vec", tag="7")]
     pub output_mint: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag="7")]
+    #[prost(uint64, tag="8")]
     pub output_amount: u64,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Protocol {
+    Unspecified = 0,
+    Boop = 1,
+    Darklake = 2,
+    Dumpfun = 3,
+    JupiterV4 = 4,
+    JupiterV6 = 5,
+    MeteoraDaam = 6,
+    MeteoraDllm = 7,
+    OrcaWhirlpool = 8,
+    Pumpfun = 9,
+    PumpfunAmm = 10,
+    RaydiumAmmV4 = 11,
+    RaydiumClmm = 12,
+    RaydiumCpmm = 13,
+    RaydiumLaunchpad = 14,
+}
+impl Protocol {
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PROTOCOL_UNSPECIFIED",
+            Self::Boop => "PROTOCOL_BOOP",
+            Self::Darklake => "PROTOCOL_DARKLAKE",
+            Self::Dumpfun => "PROTOCOL_DUMPFUN",
+            Self::JupiterV4 => "PROTOCOL_JUPITER_V4",
+            Self::JupiterV6 => "PROTOCOL_JUPITER_V6",
+            Self::MeteoraDaam => "PROTOCOL_METEORA_DAAM",
+            Self::MeteoraDllm => "PROTOCOL_METEORA_DLLM",
+            Self::OrcaWhirlpool => "PROTOCOL_ORCA_WHIRLPOOL",
+            Self::Pumpfun => "PROTOCOL_PUMPFUN",
+            Self::PumpfunAmm => "PROTOCOL_PUMPFUN_AMM",
+            Self::RaydiumAmmV4 => "PROTOCOL_RAYDIUM_AMM_V4",
+            Self::RaydiumClmm => "PROTOCOL_RAYDIUM_CLMM",
+            Self::RaydiumCpmm => "PROTOCOL_RAYDIUM_CPMM",
+            Self::RaydiumLaunchpad => "PROTOCOL_RAYDIUM_LAUNCHPAD",
+        }
+    }
 }
 // @@protoc_insertion_point(module)
