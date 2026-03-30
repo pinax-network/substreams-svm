@@ -1,5 +1,5 @@
 -- Raydium Launchpad Trade Events --
-CREATE TABLE IF NOT EXISTS raydium_launchpad_buy AS base_events
+CREATE TABLE IF NOT EXISTS raydium_launchpad_buy AS BASE_EVENTS
 COMMENT 'Raydium Launchpad Buy';
 ALTER TABLE raydium_launchpad_buy
     ADD COLUMN IF NOT EXISTS payer             String COMMENT 'User account',

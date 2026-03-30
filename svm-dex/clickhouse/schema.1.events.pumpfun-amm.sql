@@ -1,5 +1,5 @@
 -- Pump.fun AMM Swap Buy --
-CREATE TABLE IF NOT EXISTS pumpfun_amm_buy AS base_events
+CREATE TABLE IF NOT EXISTS pumpfun_amm_buy AS BASE_EVENTS
 COMMENT 'Pump.fun AMM Swap';
 ALTER TABLE pumpfun_amm_buy
     -- data --

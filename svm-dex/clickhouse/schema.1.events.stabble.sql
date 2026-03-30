@@ -1,5 +1,5 @@
 -- Stabble Swap --
-CREATE TABLE IF NOT EXISTS stabble_swap AS base_events
+CREATE TABLE IF NOT EXISTS stabble_swap AS BASE_EVENTS
 COMMENT 'Stabble Swap';
 ALTER TABLE stabble_swap
     ADD COLUMN IF NOT EXISTS user               String COMMENT 'User account',

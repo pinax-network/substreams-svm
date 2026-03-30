@@ -1,5 +1,5 @@
 -- PancakeSwap Swap --
-CREATE TABLE IF NOT EXISTS pancakeswap_swap AS base_events
+CREATE TABLE IF NOT EXISTS pancakeswap_swap AS BASE_EVENTS
 COMMENT 'PancakeSwap Swap';
 ALTER TABLE pancakeswap_swap
     ADD COLUMN IF NOT EXISTS pool_state       String COMMENT 'Pool state account',

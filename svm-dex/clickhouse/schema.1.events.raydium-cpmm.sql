@@ -1,5 +1,5 @@
 -- Raydium CPMM Swap --
-CREATE TABLE IF NOT EXISTS raydium_cpmm_swap_base_in AS base_events
+CREATE TABLE IF NOT EXISTS raydium_cpmm_swap_base_in AS BASE_EVENTS
 COMMENT 'Raydium CPMM Swap';
 ALTER TABLE raydium_cpmm_swap_base_in
     ADD COLUMN IF NOT EXISTS payer               String COMMENT 'User account',

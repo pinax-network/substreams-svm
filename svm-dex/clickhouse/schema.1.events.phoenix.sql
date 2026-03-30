@@ -1,5 +1,5 @@
 -- Phoenix Swap --
-CREATE TABLE IF NOT EXISTS phoenix_swap AS base_events
+CREATE TABLE IF NOT EXISTS phoenix_swap AS BASE_EVENTS
 COMMENT 'Phoenix Swap';
 ALTER TABLE phoenix_swap
     ADD COLUMN IF NOT EXISTS trader         String COMMENT 'Trader account',

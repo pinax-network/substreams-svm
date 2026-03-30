@@ -1,5 +1,5 @@
 -- Lifinity Swap --
-CREATE TABLE IF NOT EXISTS lifinity_swap AS base_events
+CREATE TABLE IF NOT EXISTS lifinity_swap AS BASE_EVENTS
 COMMENT 'Lifinity Swap';
 ALTER TABLE lifinity_swap
     ADD COLUMN IF NOT EXISTS user               String COMMENT 'User transfer authority',

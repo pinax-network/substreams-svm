@@ -1,5 +1,5 @@
 -- SolFi Swap --
-CREATE TABLE IF NOT EXISTS solfi_swap AS base_events
+CREATE TABLE IF NOT EXISTS solfi_swap AS BASE_EVENTS
 COMMENT 'SolFi Swap';
 ALTER TABLE solfi_swap
     ADD COLUMN IF NOT EXISTS user               String COMMENT 'User account',

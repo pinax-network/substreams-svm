@@ -1,5 +1,5 @@
 -- PumpSwap Buy --
-CREATE TABLE IF NOT EXISTS pumpswap_buy AS base_events
+CREATE TABLE IF NOT EXISTS pumpswap_buy AS BASE_EVENTS
 COMMENT 'PumpSwap Buy';
 ALTER TABLE pumpswap_buy
     ADD COLUMN IF NOT EXISTS pool                        String COMMENT 'Pool account',
@@ -13,7 +13,7 @@ ALTER TABLE pumpswap_buy
     ADD COLUMN IF NOT EXISTS pool_quote_token_reserves   UInt64 COMMENT 'Pool quote token reserves';
 
 -- PumpSwap Sell --
-CREATE TABLE IF NOT EXISTS pumpswap_sell AS base_events
+CREATE TABLE IF NOT EXISTS pumpswap_sell AS BASE_EVENTS
 COMMENT 'PumpSwap Sell';
 ALTER TABLE pumpswap_sell
     ADD COLUMN IF NOT EXISTS pool                        String COMMENT 'Pool account',

@@ -1,5 +1,5 @@
 -- DumpFun Buy --
-CREATE TABLE IF NOT EXISTS dumpfun_buy AS base_events
+CREATE TABLE IF NOT EXISTS dumpfun_buy AS BASE_EVENTS
 COMMENT 'DumpFun Buy';
 ALTER TABLE dumpfun_buy
     ADD COLUMN IF NOT EXISTS user               String COMMENT 'User account',
@@ -9,7 +9,7 @@ ALTER TABLE dumpfun_buy
     ADD COLUMN IF NOT EXISTS buy_time           Int64 COMMENT 'Buy timestamp';
 
 -- DumpFun Sell --
-CREATE TABLE IF NOT EXISTS dumpfun_sell AS base_events
+CREATE TABLE IF NOT EXISTS dumpfun_sell AS BASE_EVENTS
 COMMENT 'DumpFun Sell';
 ALTER TABLE dumpfun_sell
     ADD COLUMN IF NOT EXISTS user               String COMMENT 'User account',

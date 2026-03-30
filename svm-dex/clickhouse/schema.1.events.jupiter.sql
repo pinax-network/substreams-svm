@@ -1,5 +1,5 @@
 -- Jupiter V4 & V6 Swaps --
-CREATE TABLE IF NOT EXISTS jupiter_swap AS base_events
+CREATE TABLE IF NOT EXISTS jupiter_swap AS BASE_EVENTS
 COMMENT 'Jupiter V4 & V6 Swaps';
 ALTER TABLE jupiter_swap
     -- log --

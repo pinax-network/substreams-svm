@@ -1,5 +1,5 @@
 -- OpenBook Fill --
-CREATE TABLE IF NOT EXISTS openbook_fill AS base_events
+CREATE TABLE IF NOT EXISTS openbook_fill AS BASE_EVENTS
 COMMENT 'OpenBook Fill Log';
 ALTER TABLE openbook_fill
     ADD COLUMN IF NOT EXISTS market       String COMMENT 'Market account',
@@ -11,7 +11,7 @@ ALTER TABLE openbook_fill
     ADD COLUMN IF NOT EXISTS seq_num      UInt64 COMMENT 'Sequence number';
 
 -- OpenBook Total Order Fill --
-CREATE TABLE IF NOT EXISTS openbook_total_order_fill AS base_events
+CREATE TABLE IF NOT EXISTS openbook_total_order_fill AS BASE_EVENTS
 COMMENT 'OpenBook Total Order Fill';
 ALTER TABLE openbook_total_order_fill
     ADD COLUMN IF NOT EXISTS taker                    String COMMENT 'Taker account',

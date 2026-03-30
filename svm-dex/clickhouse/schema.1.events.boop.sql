@@ -1,5 +1,5 @@
 -- Boop Buy --
-CREATE TABLE IF NOT EXISTS boop_buy AS base_events
+CREATE TABLE IF NOT EXISTS boop_buy AS BASE_EVENTS
 COMMENT 'Boop Buy';
 ALTER TABLE boop_buy
     ADD COLUMN IF NOT EXISTS mint               String COMMENT 'Token mint',
@@ -9,7 +9,7 @@ ALTER TABLE boop_buy
     ADD COLUMN IF NOT EXISTS buyer              String COMMENT 'Buyer account';
 
 -- Boop Sell --
-CREATE TABLE IF NOT EXISTS boop_sell AS base_events
+CREATE TABLE IF NOT EXISTS boop_sell AS BASE_EVENTS
 COMMENT 'Boop Sell';
 ALTER TABLE boop_sell
     ADD COLUMN IF NOT EXISTS mint               String COMMENT 'Token mint',

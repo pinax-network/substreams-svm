@@ -1,5 +1,5 @@
 -- Drift Swap --
-CREATE TABLE IF NOT EXISTS drift_swap AS base_events
+CREATE TABLE IF NOT EXISTS drift_swap AS BASE_EVENTS
 COMMENT 'Drift Swap';
 ALTER TABLE drift_swap
     ADD COLUMN IF NOT EXISTS user               String COMMENT 'User account',

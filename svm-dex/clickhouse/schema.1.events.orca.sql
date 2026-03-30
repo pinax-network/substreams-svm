@@ -1,5 +1,5 @@
 -- Orca Swap --
-CREATE TABLE IF NOT EXISTS orca_swap AS base_events
+CREATE TABLE IF NOT EXISTS orca_swap AS BASE_EVENTS
 COMMENT 'Orca Whirlpool Swap';
 ALTER TABLE orca_swap
     ADD COLUMN IF NOT EXISTS user         String COMMENT 'User (token authority)',

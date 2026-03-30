@@ -1,5 +1,5 @@
 -- SVM Swaps --
-CREATE TABLE IF NOT EXISTS swaps AS base_events
+CREATE TABLE IF NOT EXISTS swaps AS BASE_EVENTS
 COMMENT 'Solana Swaps';
 ALTER TABLE swaps
     -- log --

@@ -1,5 +1,5 @@
 -- Pump.fun Buy --
-CREATE TABLE IF NOT EXISTS pumpfun_buy AS base_events
+CREATE TABLE IF NOT EXISTS pumpfun_buy AS BASE_EVENTS
 COMMENT 'Pump.fun Bonding Curve';
 ALTER TABLE pumpfun_buy
     -- accounts --

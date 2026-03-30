@@ -1,5 +1,5 @@
 -- Meteora DLLM Swap --
-CREATE TABLE IF NOT EXISTS meteora_dllm_swap AS base_events
+CREATE TABLE IF NOT EXISTS meteora_dllm_swap AS BASE_EVENTS
 COMMENT 'Meteora DLLM Swap';
 ALTER TABLE meteora_dllm_swap
     ADD COLUMN IF NOT EXISTS user        String COMMENT 'User account',

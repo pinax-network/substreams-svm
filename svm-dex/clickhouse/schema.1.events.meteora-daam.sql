@@ -1,5 +1,5 @@
 -- Meteora DAAM Swap --
-CREATE TABLE IF NOT EXISTS meteora_daam_swap AS base_events
+CREATE TABLE IF NOT EXISTS meteora_daam_swap AS BASE_EVENTS
 COMMENT 'Meteora DAAM Swap';
 ALTER TABLE meteora_daam_swap
     ADD COLUMN IF NOT EXISTS payer       String COMMENT 'User account',

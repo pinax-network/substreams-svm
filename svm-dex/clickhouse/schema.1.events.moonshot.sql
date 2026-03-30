@@ -1,5 +1,5 @@
 -- Moonshot Buy --
-CREATE TABLE IF NOT EXISTS moonshot_buy AS base_events
+CREATE TABLE IF NOT EXISTS moonshot_buy AS BASE_EVENTS
 COMMENT 'Moonshot Buy';
 ALTER TABLE moonshot_buy
     ADD COLUMN IF NOT EXISTS amount             UInt64 COMMENT 'Token amount',
@@ -12,7 +12,7 @@ ALTER TABLE moonshot_buy
     ADD COLUMN IF NOT EXISTS curve              String COMMENT 'Curve account';
 
 -- Moonshot Sell --
-CREATE TABLE IF NOT EXISTS moonshot_sell AS base_events
+CREATE TABLE IF NOT EXISTS moonshot_sell AS BASE_EVENTS
 COMMENT 'Moonshot Sell';
 ALTER TABLE moonshot_sell
     ADD COLUMN IF NOT EXISTS amount             UInt64 COMMENT 'Token amount',

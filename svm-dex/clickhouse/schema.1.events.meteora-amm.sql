@@ -1,5 +1,5 @@
 -- Meteora AMM Swap --
-CREATE TABLE IF NOT EXISTS meteora_amm_swap AS base_events
+CREATE TABLE IF NOT EXISTS meteora_amm_swap AS BASE_EVENTS
 COMMENT 'Meteora AMM Swap';
 ALTER TABLE meteora_amm_swap
     ADD COLUMN IF NOT EXISTS user        String COMMENT 'User account',

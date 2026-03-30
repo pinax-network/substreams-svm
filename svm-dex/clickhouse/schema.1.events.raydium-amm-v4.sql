@@ -1,5 +1,5 @@
 -- Raydium AMM V4 Swap --
-CREATE TABLE IF NOT EXISTS raydium_amm_v4_swap_base_in AS base_events
+CREATE TABLE IF NOT EXISTS raydium_amm_v4_swap_base_in AS BASE_EVENTS
 COMMENT 'Raydium AMM V4 Swap';
 ALTER TABLE raydium_amm_v4_swap_base_in
     -- accounts --
