@@ -1,0 +1,31 @@
+specVersion: v0.1.0
+package:
+  name: dex_swaps
+  version: v0.1.0
+  url: https://github.com/pinax-network/substreams-svm
+  description: Normalized swap events across Solana DEX protocols.
+  image: ../image.png
+
+imports:
+  jupiter_v6: ../spkg/jupiter-v6-v0.4.0.spkg
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../target/wasm32-unknown-unknown/release/dex_swaps.wasm
+
+protobuf:
+  files:
+    - v1/dex-swaps.proto
+  importPaths:
+    - ../proto
+
+modules:
+  - name: map_events
+    kind: map
+    inputs:
+      - map: jupiter_v6:map_events
+    output:
+      type: proto:dex.swaps.v1.Events
+
+network: solana

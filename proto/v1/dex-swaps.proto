@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package dex.swaps.v1;
+
+message Events {
+  repeated Transaction transactions = 1;
+}
+
+message Transaction {
+  bytes signature = 1;
+  bytes fee_payer = 2;
+  repeated bytes signers = 3;
+  uint64 fee = 4;
+  uint64 compute_units_consumed = 5;
+  repeated Swap swaps = 6;
+}
+
+message Swap {
+  bytes amm = 1;
+  bytes amm_pool = 2;
+  bytes user = 3;
+  bytes input_mint = 4;
+  uint64 input_amount = 5;
+  bytes output_mint = 6;
+  uint64 output_amount = 7;
+}

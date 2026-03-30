@@ -3,7 +3,7 @@ package:
   name: svm_dex
   version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
-  description: Database-ready DEX events for Solana.
+  description: Database-ready normalized DEX swaps for Solana.
   image: ../image.png
 
 imports:
@@ -11,45 +11,7 @@ imports:
   database_changes: ../spkg/substreams-sink-database-changes-v4.0.0.spkg
   sql: ../spkg/substreams-sink-sql-protodefs-v1.0.7.spkg
 
-  # DEXs
-  pumpfun: ../spkg/pumpfun-bonding-curve-v0.4.0.spkg
-  pumpfun_amm: ../spkg/pumpfun-amm-v0.4.0.spkg
-  raydium_amm_v4: ../spkg/raydium-amm-v4-v0.4.0.spkg
-  raydium_cpmm: ../spkg/raydium-cpmm-v0.4.0.spkg
-  raydium_clmm: ../spkg/raydium-clmm-v0.4.0.spkg
-  raydium_launchpad: ../spkg/raydium-launchpad-v0.4.0.spkg
-  meteora_dllm: ../spkg/meteora-dllm-v0.4.0.spkg
-  meteora_daam: ../spkg/meteora-daam-v0.4.0.spkg
-  meteora_amm: ../spkg/meteora-amm-v0.4.0.spkg
-  jupiter_v4: ../spkg/jupiter-v4-v0.4.0.spkg
-  jupiter_v6: ../spkg/jupiter-v6-v0.4.0.spkg
-  orca: ../spkg/orca-whirlpool-v0.4.0.spkg
-  phoenix: ../spkg/phoenix-v0.4.0.spkg
-  openbook: ../spkg/openbook-v0.4.0.spkg
-  pumpswap: ../spkg/pumpswap-v0.4.0.spkg
-  darklake: ../spkg/darklake-v0.4.0.spkg
-  lifinity: ../spkg/lifinity-v0.4.0.spkg
-  moonshot: ../spkg/moonshot-v0.4.0.spkg
-  pancakeswap: ../spkg/pancakeswap-v0.4.0.spkg
-  stabble: ../spkg/stabble-v0.4.0.spkg
-  dumpfun: ../spkg/dumpfun-v0.4.0.spkg
-  goonfi: ../spkg/goonfi-v0.4.0.spkg
-  heaven: ../spkg/heaven-v0.4.0.spkg
-  plasma: ../spkg/plasma-v0.4.0.spkg
-  saros: ../spkg/saros-v0.4.0.spkg
-  aldrin: ../spkg/aldrin-v0.4.0.spkg
-  boop: ../spkg/boop-v0.4.0.spkg
-  byreal: ../spkg/byreal-v0.4.0.spkg
-  dflow: ../spkg/dflow-v0.4.0.spkg
-  drift: ../spkg/drift-v0.4.0.spkg
-  obric_v2: ../spkg/obric-v2-v0.4.0.spkg
-  obric_v3: ../spkg/obric-v3-v0.4.0.spkg
-  okx_dex: ../spkg/okx-dex-v0.4.0.spkg
-  sanctum: ../spkg/sanctum-v0.4.0.spkg
-  serum: ../spkg/serum-v0.4.0.spkg
-  solfi_v1: ../spkg/solfi-v1-v0.4.0.spkg
-  solfi_v2: ../spkg/solfi-v2-v0.4.0.spkg
-  bonk_swap: ../spkg/bonk-swap-v0.4.0.spkg
+  dex_swaps: ../spkg/dex-swaps-v0.1.0.spkg
 
 binaries:
   default:
@@ -61,48 +23,7 @@ modules:
     kind: map
     inputs:
       - source: sf.substreams.v1.Clock
-
-      # DEXs
-      - map: pumpfun:map_events
-      - map: pumpfun_amm:map_events
-      - map: raydium_amm_v4:map_events
-      - map: raydium_cpmm:map_events
-      - map: raydium_clmm:map_events
-      - map: raydium_launchpad:map_events
-      - map: meteora_dllm:map_events
-      - map: meteora_daam:map_events
-      - map: meteora_amm:map_events
-      - map: jupiter_v4:map_events
-      - map: jupiter_v6:map_events
-
-      # New DEXs
-      - map: orca:map_events
-      - map: phoenix:map_events
-      - map: openbook:map_events
-      - map: pumpswap:map_events
-      - map: darklake:map_events
-      - map: lifinity:map_events
-      - map: moonshot:map_events
-      - map: pancakeswap:map_events
-      - map: stabble:map_events
-      - map: dumpfun:map_events
-      - map: goonfi:map_events
-      - map: heaven:map_events
-      - map: plasma:map_events
-      - map: saros:map_events
-      - map: aldrin:map_events
-      - map: boop:map_events
-      - map: byreal:map_events
-      - map: dflow:map_events
-      - map: drift:map_events
-      - map: obric_v2:map_events
-      - map: obric_v3:map_events
-      - map: okx_dex:map_events
-      - map: sanctum:map_events
-      - map: serum:map_events
-      - map: solfi_v1:map_events
-      - map: solfi_v2:map_events
-      - map: bonk_swap:map_events
+      - map: dex_swaps:map_events
 
     output:
       type: proto:sf.substreams.sink.database.v1.DatabaseChanges

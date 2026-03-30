@@ -1,0 +1,12 @@
+[package]
+name = "dex-swaps"
+description = "Normalized DEX swaps"
+edition = { workspace = true }
+version = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+substreams = { workspace = true }
+proto = { path = "../proto" }

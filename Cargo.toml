@@ -3,6 +3,7 @@ members = [
   # DatabaseChanges
   "svm-balances",
   "svm-dex",
+  "dex-swaps",
   "svm-transfers",
   "svm-accounts",
   "svm-metadata",

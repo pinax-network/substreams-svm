@@ -128,6 +128,15 @@ pub mod bonk {
         }
     }
 }
+pub mod dex {
+    pub mod swaps {
+        // @@protoc_insertion_point(attribute:dex.swaps.v1)
+        pub mod v1 {
+            include!("dex.swaps.v1.rs");
+            // @@protoc_insertion_point(dex.swaps.v1)
+        }
+    }
+}
 pub mod lifinity {
     pub mod v1 {
         include!("lifinity.v1.rs");
