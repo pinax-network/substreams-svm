@@ -6,10 +6,10 @@ CREATE TABLE IF NOT EXISTS balances_native (
 
     -- balance --
     account         String,
-    lamports        UInt64,
+    amount          UInt64,
 
     -- indexes --
-    INDEX idx_lamports (lamports) TYPE minmax GRANULARITY 1
+    INDEX idx_amount (amount) TYPE minmax GRANULARITY 1
 )
 ENGINE = ReplacingMergeTree(block_num)
 ORDER BY (account)
@@ -21,5 +21,5 @@ SELECT
     block_num,
     timestamp,
     account,
-    amount as lamports
+    amount
 FROM system_post_balances;
