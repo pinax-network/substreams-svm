@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS balances_native (
     -- block --
     block_num       UInt32,
+    block_hash      String,
     timestamp       DateTime(0, 'UTC'),
 
     -- balance --
@@ -19,6 +20,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS mv_system_post_balances
 TO balances_native AS
 SELECT
     block_num,
+    block_hash,
     timestamp,
     account,
     amount

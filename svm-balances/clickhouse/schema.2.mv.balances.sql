@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS balances (
     -- block --
     block_num       UInt32,
+    block_hash      String,
     timestamp       DateTime(0, 'UTC'),
 
     -- balance --
@@ -29,6 +30,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS mv_post_token_balances
 TO balances AS
 SELECT
     block_num,
+    block_hash,
     timestamp,
     program_id,
     account,
