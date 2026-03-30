@@ -2,8 +2,8 @@
 CREATE TABLE IF NOT EXISTS pumpswap_buy AS base_events
 COMMENT 'PumpSwap Buy';
 ALTER TABLE pumpswap_buy
-    ADD COLUMN IF NOT EXISTS pool                        FixedString(44) COMMENT 'Pool account',
-    ADD COLUMN IF NOT EXISTS user                        FixedString(44) COMMENT 'User account',
+    ADD COLUMN IF NOT EXISTS pool                        String COMMENT 'Pool account',
+    ADD COLUMN IF NOT EXISTS user                        String COMMENT 'User account',
     ADD COLUMN IF NOT EXISTS base_amount_out             UInt64 COMMENT 'Base amount out',
     ADD COLUMN IF NOT EXISTS quote_amount_in             UInt64 COMMENT 'Quote amount in',
     ADD COLUMN IF NOT EXISTS lp_fee                      UInt64 COMMENT 'LP fee',
@@ -16,8 +16,8 @@ ALTER TABLE pumpswap_buy
 CREATE TABLE IF NOT EXISTS pumpswap_sell AS base_events
 COMMENT 'PumpSwap Sell';
 ALTER TABLE pumpswap_sell
-    ADD COLUMN IF NOT EXISTS pool                        FixedString(44) COMMENT 'Pool account',
-    ADD COLUMN IF NOT EXISTS user                        FixedString(44) COMMENT 'User account',
+    ADD COLUMN IF NOT EXISTS pool                        String COMMENT 'Pool account',
+    ADD COLUMN IF NOT EXISTS user                        String COMMENT 'User account',
     ADD COLUMN IF NOT EXISTS base_amount_in              UInt64 COMMENT 'Base amount in',
     ADD COLUMN IF NOT EXISTS quote_amount_out            UInt64 COMMENT 'Quote amount out',
     ADD COLUMN IF NOT EXISTS lp_fee                      UInt64 COMMENT 'LP fee',

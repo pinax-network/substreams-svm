@@ -1,11 +1,11 @@
 -- Pool activity (Transactions) --
 CREATE TABLE IF NOT EXISTS pool_activity_summary (
     -- Order By --
-    program_id                  LowCardinality(FixedString(44)),
-    amm                         LowCardinality(FixedString(44)),
-    amm_pool                    LowCardinality(FixedString(44)),
-    mint0                       LowCardinality(FixedString(44)),
-    mint1                       LowCardinality(FixedString(44)),
+    program_id                  LowCardinality(String),
+    amm                         LowCardinality(String),
+    amm_pool                    LowCardinality(String),
+    mint0                       LowCardinality(String),
+    mint1                       LowCardinality(String),
 
     -- summing --
     transactions                UInt64,

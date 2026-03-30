@@ -3,12 +3,12 @@ CREATE TABLE IF NOT EXISTS swaps AS base_events
 COMMENT 'Solana Swaps';
 ALTER TABLE swaps
     -- log --
-    ADD COLUMN IF NOT EXISTS amm                         FixedString(44) COMMENT 'AMM protocol (Raydium Liquidity Pool V4)',
-    ADD COLUMN IF NOT EXISTS amm_pool                    FixedString(44) COMMENT 'AMM market (Raydium "WSOL-USDT" Market)',
-    ADD COLUMN IF NOT EXISTS user                        FixedString(44) COMMENT 'User wallet address',
-    ADD COLUMN IF NOT EXISTS input_mint                  FixedString(44) COMMENT 'Input token mint address',
+    ADD COLUMN IF NOT EXISTS amm                         String COMMENT 'AMM protocol (Raydium Liquidity Pool V4)',
+    ADD COLUMN IF NOT EXISTS amm_pool                    String COMMENT 'AMM market (Raydium "WSOL-USDT" Market)',
+    ADD COLUMN IF NOT EXISTS user                        String COMMENT 'User wallet address',
+    ADD COLUMN IF NOT EXISTS input_mint                  String COMMENT 'Input token mint address',
     ADD COLUMN IF NOT EXISTS input_amount                UInt64 COMMENT 'Amount of input tokens swapped',
-    ADD COLUMN IF NOT EXISTS output_mint                 FixedString(44) COMMENT 'Output token mint address',
+    ADD COLUMN IF NOT EXISTS output_mint                 String COMMENT 'Output token mint address',
     ADD COLUMN IF NOT EXISTS output_amount               UInt64 COMMENT 'Amount of output tokens received',
 
     -- INDEX for common fields --

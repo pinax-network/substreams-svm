@@ -3,11 +3,11 @@ CREATE TABLE IF NOT EXISTS ohlc_prices (
     timestamp               DateTime('UTC', 0) COMMENT 'beginning of the bar',
 
     -- OrderBy --
-    program_id              LowCardinality(FixedString(44)),
-    amm                     LowCardinality(FixedString(44)),
-    amm_pool                LowCardinality(FixedString(44)),
-    mint0                   LowCardinality(FixedString(44)),
-    mint1                   LowCardinality(FixedString(44)),
+    program_id              LowCardinality(String),
+    amm                     LowCardinality(String),
+    amm_pool                LowCardinality(String),
+    mint0                   LowCardinality(String),
+    mint1                   LowCardinality(String),
 
     -- Aggregate --
     open0                   AggregateFunction(argMin, Float64, UInt64),
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS ohlc_prices (
     net_flow1               SimpleAggregateFunction(sum, Int128) COMMENT 'net flow of token1 in the window',
 
     -- universal --
-    uaw                     AggregateFunction(uniq, FixedString(44)) COMMENT 'unique wallet addresses in the window',
+    uaw                     AggregateFunction(uniq, String) COMMENT 'unique wallet addresses in the window',
     transactions            SimpleAggregateFunction(sum, UInt64) COMMENT 'number of transactions in the window',
 
     -- indexes --
