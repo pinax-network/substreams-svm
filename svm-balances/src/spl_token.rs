@@ -46,7 +46,7 @@ fn handle_token_balances(
     let account = base58::encode(&data.account);
     let key = [("account", account.clone()), ("mint", mint.clone())];
     let row = tables
-        .upsert_row("balances", key)
+        .create_row("balances", key)
         .set("program_id", base58::encode(&data.program_id))
         .set("mint", mint)
         .set("account", account)
