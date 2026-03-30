@@ -1,9 +1,9 @@
-CREATE TABLE IF NOT EXISTS base_transactions (
+CREATE TABLE IF NOT EXISTS BASE_TRANSACTIONS (
     -- block --
     block_num                   UInt32,
     block_hash                  String,
     timestamp                   DateTime(0, 'UTC'),
-    version                     UInt64  MATERIALIZED to_version(block_num, transaction_index, instruction_index),
+    minute                      UInt32 MATERIALIZED toRelativeMinuteNum(timestamp),
 
     -- ordering --
     transaction_index           UInt32,
@@ -16,14 +16,16 @@ CREATE TABLE IF NOT EXISTS base_transactions (
     signers                     Array(String) MATERIALIZED string_to_array(signers_raw),
     signer                      String MATERIALIZED if(length(signers) > 0, signers[1], ''),
     fee                         UInt64 DEFAULT 0,
-    compute_units_consumed      UInt64 DEFAULT 0,
+    compute_units_consumed      UInt64 DEFAULT 0
 
-    -- indexes -
-    INDEX idx_timestamp         (timestamp)         TYPE minmax                 GRANULARITY 1,
-    INDEX idx_block_num         (block_num)         TYPE minmax                 GRANULARITY 1,
-    INDEX idx_fee_payer         (fee_payer)         TYPE bloom_filter(0.005)    GRANULARITY 1,
-    INDEX idx_signature         (signature)         TYPE bloom_filter(0.005)    GRANULARITY 1,
-    INDEX idx_signer            (signer)            TYPE bloom_filter(0.005)    GRANULARITY 1
+    -- -- indexes --
+    -- INDEX idx_timestamp         (timestamp)         TYPE minmax                 GRANULARITY 1,
+    -- INDEX idx_block_num         (block_num)         TYPE minmax                 GRANULARITY 1,
+
+    -- -- projections --
+    -- PROJECTION prj_signature (SELECT signature, timestamp, _part_offset ORDER BY (signature, timestamp)),
+    -- PROJECTION prj_fee_payer (SELECT fee_payer, timestamp, _part_offset ORDER BY (fee_payer, timestamp)),
+    -- PROJECTION prj_signer (SELECT signer, timestamp, _part_offset ORDER BY (signer, timestamp))
 )
 ENGINE = ReplacingMergeTree
 -- TTL to automatically clean up old data
@@ -32,12 +34,5 @@ TTL timestamp + INTERVAL 1 DAY
 ORDER BY (
     timestamp, block_num,
     block_hash, transaction_index, instruction_index
-);
-
-ALTER TABLE base_transactions
-  MODIFY SETTING deduplicate_merge_projection_mode = 'rebuild';
-
-ALTER TABLE base_transactions
-    ADD PROJECTION IF NOT EXISTS prj_signature (SELECT signature, timestamp, _part_offset ORDER BY (signature, timestamp)),
-    ADD PROJECTION IF NOT EXISTS prj_fee_payer (SELECT fee_payer, timestamp, _part_offset ORDER BY (fee_payer, timestamp)),
-    ADD PROJECTION IF NOT EXISTS prj_signer (SELECT signer, timestamp, _part_offset ORDER BY (signer, timestamp));
+)
+SETTINGS deduplicate_merge_projection_mode = 'rebuild';

@@ -14,16 +14,16 @@ CREATE TABLE IF NOT EXISTS balances (
     -- indexes --
     INDEX idx_program_id (program_id) TYPE set(2) GRANULARITY 1,
     INDEX idx_amount (amount) TYPE minmax GRANULARITY 1,
-    INDEX idx_mint (mint) TYPE bloom_filter(0.005) GRANULARITY 1,
-    INDEX idx_decimals (decimals) TYPE minmax GRANULARITY 1
+    INDEX idx_decimals (decimals) TYPE minmax GRANULARITY 1,
+
+    -- projections --
+    PROJECTION prj_mint (SELECT * ORDER BY (mint, account))
 )
 ENGINE = ReplacingMergeTree(block_num)
 ORDER BY (account)
+SETTINGS deduplicate_merge_projection_mode = 'rebuild'
 COMMENT 'SPL Token balances (single balance per-block per-account/mint)';
 
-ALTER TABLE balances MODIFY SETTING deduplicate_merge_projection_mode = 'rebuild';
-ALTER TABLE balances
-    ADD PROJECTION IF NOT EXISTS prj_mint (SELECT * ORDER BY (mint, account));
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_post_token_balances
 TO balances AS
