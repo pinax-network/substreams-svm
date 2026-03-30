@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: svm_clickhouse_dex
-  version: v1.0.0
+  version: v0.4.0
   url: https://github.com/pinax-network/substreams-svm
   description: DEXs for Solana (ClickHouse).
   image: ../../image.png

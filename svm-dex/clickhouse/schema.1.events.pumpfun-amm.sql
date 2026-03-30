@@ -1,5 +1,5 @@
 -- Pump.fun AMM Swap Buy --
-CREATE TABLE IF NOT EXISTS pumpfun_amm_buy AS base_events
+CREATE TABLE IF NOT EXISTS pumpfun_amm_buy AS BASE_EVENTS
 COMMENT 'Pump.fun AMM Swap';
 ALTER TABLE pumpfun_amm_buy
     -- data --
@@ -7,19 +7,19 @@ ALTER TABLE pumpfun_amm_buy
     ADD COLUMN IF NOT EXISTS max_quote_amount_in     UInt64 COMMENT 'Maximum amount of quote tokens to swap in',
 
     -- accounts --
-    ADD COLUMN IF NOT EXISTS pool                                   FixedString(44) COMMENT 'AMM pool account',
-    ADD COLUMN IF NOT EXISTS user                                   FixedString(44) COMMENT 'User account',
-    ADD COLUMN IF NOT EXISTS global_config                          FixedString(44) COMMENT 'Global config account',
-    ADD COLUMN IF NOT EXISTS base_mint                              FixedString(44) COMMENT 'Base token mint address',
-    ADD COLUMN IF NOT EXISTS quote_mint                             FixedString(44) COMMENT 'Quote token mint address',
-    ADD COLUMN IF NOT EXISTS user_base_token_account                FixedString(44) COMMENT 'User base token account',
-    ADD COLUMN IF NOT EXISTS user_quote_token_account               FixedString(44) COMMENT 'User quote token account',
-    ADD COLUMN IF NOT EXISTS pool_base_token_account                FixedString(44) COMMENT 'Pool base token account',
-    ADD COLUMN IF NOT EXISTS pool_quote_token_account               FixedString(44) COMMENT 'Pool quote token account',
-    ADD COLUMN IF NOT EXISTS protocol_fee_recipient                 FixedString(44) COMMENT 'Protocol fee recipient account',
-    ADD COLUMN IF NOT EXISTS protocol_fee_recipient_token_account   FixedString(44) COMMENT 'Protocol fee recipient token account',
-    ADD COLUMN IF NOT EXISTS coin_creator_vault_ata                 FixedString(44) DEFAULT '' COMMENT 'Coin creator vault ATA',
-    ADD COLUMN IF NOT EXISTS coin_creator_vault_authority           FixedString(44) DEFAULT '' COMMENT 'Coin creator vault authority',
+    ADD COLUMN IF NOT EXISTS pool                                   String COMMENT 'AMM pool account',
+    ADD COLUMN IF NOT EXISTS user                                   String COMMENT 'User account',
+    ADD COLUMN IF NOT EXISTS global_config                          String COMMENT 'Global config account',
+    ADD COLUMN IF NOT EXISTS base_mint                              String COMMENT 'Base token mint address',
+    ADD COLUMN IF NOT EXISTS quote_mint                             String COMMENT 'Quote token mint address',
+    ADD COLUMN IF NOT EXISTS user_base_token_account                String COMMENT 'User base token account',
+    ADD COLUMN IF NOT EXISTS user_quote_token_account               String COMMENT 'User quote token account',
+    ADD COLUMN IF NOT EXISTS pool_base_token_account                String COMMENT 'Pool base token account',
+    ADD COLUMN IF NOT EXISTS pool_quote_token_account               String COMMENT 'Pool quote token account',
+    ADD COLUMN IF NOT EXISTS protocol_fee_recipient                 String COMMENT 'Protocol fee recipient account',
+    ADD COLUMN IF NOT EXISTS protocol_fee_recipient_token_account   String COMMENT 'Protocol fee recipient token account',
+    ADD COLUMN IF NOT EXISTS coin_creator_vault_ata                 String DEFAULT '' COMMENT 'Coin creator vault ATA',
+    ADD COLUMN IF NOT EXISTS coin_creator_vault_authority           String DEFAULT '' COMMENT 'Coin creator vault authority',
 
     -- event --
     ADD COLUMN IF NOT EXISTS quote_amount_in                UInt64 COMMENT 'Amount of quote tokens swapped in',

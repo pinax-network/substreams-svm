@@ -1,5 +1,5 @@
 -- Plasma Buy --
-CREATE TABLE IF NOT EXISTS plasma_buy AS base_events
+CREATE TABLE IF NOT EXISTS plasma_buy AS BASE_EVENTS
 COMMENT 'Plasma Buy';
 ALTER TABLE plasma_buy
     ADD COLUMN IF NOT EXISTS side               UInt32 COMMENT 'Side (0=Buy, 1=Sell)',
@@ -8,7 +8,7 @@ ALTER TABLE plasma_buy
     ADD COLUMN IF NOT EXISTS limit_amount       UInt64 COMMENT 'Limit amount';
 
 -- Plasma Sell --
-CREATE TABLE IF NOT EXISTS plasma_sell AS base_events
+CREATE TABLE IF NOT EXISTS plasma_sell AS BASE_EVENTS
 COMMENT 'Plasma Sell';
 ALTER TABLE plasma_sell
     ADD COLUMN IF NOT EXISTS side               UInt32 COMMENT 'Side (0=Buy, 1=Sell)',

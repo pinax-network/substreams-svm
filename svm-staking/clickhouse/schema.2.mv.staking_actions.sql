@@ -4,9 +4,9 @@ COMMENT 'Unified staking actions across all protocols';
 ALTER TABLE staking_actions
     ADD COLUMN IF NOT EXISTS protocol             LowCardinality(String) COMMENT 'Protocol name (native_stake, marinade)',
     ADD COLUMN IF NOT EXISTS action               LowCardinality(String) COMMENT 'Action type (stake, unstake, withdraw, add_liquidity)',
-    ADD COLUMN IF NOT EXISTS account              FixedString(44) COMMENT 'User/owner account',
+    ADD COLUMN IF NOT EXISTS account              String COMMENT 'User/owner account',
     ADD COLUMN IF NOT EXISTS amount               UInt64 DEFAULT 0 COMMENT 'Amount in lamports',
-    ADD COLUMN IF NOT EXISTS validator            FixedString(44) COMMENT 'Validator vote account (if applicable)',
+    ADD COLUMN IF NOT EXISTS validator            String COMMENT 'Validator vote account (if applicable)',
 
     -- indexes --
     ADD INDEX IF NOT EXISTS idx_protocol          (protocol)          TYPE set(8)                 GRANULARITY 1,

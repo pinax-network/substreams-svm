@@ -12,7 +12,7 @@ imports:
 binaries:
   default:
     type: wasm/rust-v1+wasm-bindgen-shims
-    file: ../../target/wasm32-unknown-unknown/release/okx-dex.wasm
+    file: ../../target/wasm32-unknown-unknown/release/okx_dex.wasm
 
 protobuf:
   files:
@@ -30,6 +30,6 @@ modules:
       query:
         string: "program:6m2CDdhRgxpH4WjvdzxAYbGxwdGUz5MziiL5jek2kBma"
     output:
-      type: proto:okx-dex.v1.Events
+      type: proto:okx_dex.v1.Events
 
 network: solana
