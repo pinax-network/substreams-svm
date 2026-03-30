@@ -11,7 +11,7 @@ imports:
 
 binaries:
   default:
-    type: wasm/rust-v1
+    type: wasm/rust-v1+wasm-bindgen-shims
     file: ../target/wasm32-unknown-unknown/release/dex_swaps.wasm
 
 protobuf:
@@ -24,6 +24,7 @@ modules:
   - name: map_events
     kind: map
     inputs:
+      # - source: sf.solana.type.v1.Block
       - map: solana_common:blocks_without_votes
     output:
       type: proto:dex.swaps.v1.Events

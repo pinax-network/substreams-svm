@@ -1,62 +1,38 @@
-mod decode;
-mod normalize;
+// mod decode;
+mod jupiter_v4;
 
-use proto::pb::{dex::swaps::v1 as pb, jupiter::v1 as jupiter_pb};
+use common::solana::{get_fee_payer, get_signers};
+use proto::pb::dex::swaps::v1 as pb;
 use substreams::errors::Error;
-use substreams_solana::pb::sf::solana::r#type::v1::Block;
+use substreams_solana::pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction};
+
+use crate::jupiter_v4::decode_jupiter_v4_transaction;
 
 #[substreams::handlers::map]
 fn map_events(block: Block) -> Result<pb::Events, Error> {
-    let mut transactions = Vec::new();
+    Ok(pb::Events {
+        transactions: block.transactions_owned().filter_map(process_transaction).collect(),
+    })
+}
 
-    for tx in block.transactions_owned() {
-        if let Some(transaction) = decode::decode_boop_transaction(&tx).and_then(normalize::map_boop_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_darklake_transaction(&tx).and_then(normalize::map_darklake_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_dumpfun_transaction(&tx).and_then(normalize::map_dumpfun_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_jupiter_v4_transaction(&tx)
-            .and_then(|tx: jupiter_pb::Transaction| normalize::map_jupiter_transaction(tx, decode::PROTOCOL_JUPITER_V4))
-        {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_jupiter_v6_transaction(&tx)
-            .and_then(|tx: jupiter_pb::Transaction| normalize::map_jupiter_transaction(tx, decode::PROTOCOL_JUPITER_V6))
-        {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_meteora_daam_transaction(&tx).and_then(normalize::map_meteora_daam_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_meteora_dllm_transaction(&tx).and_then(normalize::map_meteora_dllm_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_orca_transaction(&tx).and_then(normalize::map_orca_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_pumpfun_transaction(&tx).and_then(normalize::map_pumpfun_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_pumpfun_amm_transaction(&tx).and_then(normalize::map_pumpfun_amm_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_raydium_amm_v4_transaction(&tx).and_then(normalize::map_raydium_amm_v4_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_raydium_clmm_transaction(&tx).and_then(normalize::map_raydium_clmm_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_raydium_cpmm_transaction(&tx).and_then(normalize::map_raydium_cpmm_transaction) {
-            transactions.push(transaction);
-        }
-        if let Some(transaction) = decode::decode_raydium_launchpad_transaction(&tx).and_then(normalize::map_raydium_launchpad_transaction) {
-            transactions.push(transaction);
-        }
+fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
+    let tx_meta = tx.meta.as_ref()?;
+
+    let mut swaps: Vec<pb::Swap> = Vec::new();
+
+    // Jupiter V4
+    decode_jupiter_v4_transaction(&tx).into_iter().for_each(|swap| swaps.push(swap));
+
+    if swaps.is_empty() {
+        return None;
     }
 
-    Ok(pb::Events { transactions })
+    Some(pb::Transaction {
+        fee: tx_meta.fee,
+        compute_units_consumed: tx_meta.compute_units_consumed(),
+        signature: tx.hash().to_vec(),
+        fee_payer: get_fee_payer(&tx).unwrap_or_default(),
+        signers: get_signers(&tx).unwrap_or_default(),
+        swaps: swaps.into_iter().map(|swap| swap.into()).collect(),
+    })
 }

@@ -35,11 +35,13 @@ message Transaction {
 
 message Swap {
   Protocol protocol = 1;
-  bytes amm = 2;
-  bytes amm_pool = 3;
-  bytes user = 4;
-  bytes input_mint = 5;
-  uint64 input_amount = 6;
-  bytes output_mint = 7;
-  uint64 output_amount = 8;
+  bytes program_id = 2;
+  uint32 stack_height = 3;
+  bytes amm = 4;
+  bytes amm_pool = 5;
+  bytes user = 6;
+  bytes input_mint = 7;
+  uint64 input_amount = 8;
+  bytes output_mint = 9;
+  uint64 output_amount = 10;
 }

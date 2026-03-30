@@ -11,27 +11,6 @@ use substreams_solana::{
 };
 use substreams_solana_idls::{boop, darklake, dumpfun, jupiter, meteora, orca, pumpfun, raydium};
 
-pub(crate) const PROTOCOL_BOOP: i32 = pb::Protocol::Boop as i32;
-pub(crate) const PROTOCOL_DARKLAKE: i32 = pb::Protocol::Darklake as i32;
-pub(crate) const PROTOCOL_DUMPFUN: i32 = pb::Protocol::Dumpfun as i32;
-pub(crate) const PROTOCOL_JUPITER_V4: i32 = pb::Protocol::JupiterV4 as i32;
-pub(crate) const PROTOCOL_JUPITER_V6: i32 = pb::Protocol::JupiterV6 as i32;
-pub(crate) const PROTOCOL_METEORA_DAAM: i32 = pb::Protocol::MeteoraDaam as i32;
-pub(crate) const PROTOCOL_METEORA_DLLM: i32 = pb::Protocol::MeteoraDllm as i32;
-pub(crate) const PROTOCOL_ORCA_WHIRLPOOL: i32 = pb::Protocol::OrcaWhirlpool as i32;
-pub(crate) const PROTOCOL_PUMPFUN: i32 = pb::Protocol::Pumpfun as i32;
-pub(crate) const PROTOCOL_PUMPFUN_AMM: i32 = pb::Protocol::PumpfunAmm as i32;
-pub(crate) const PROTOCOL_RAYDIUM_AMM_V4: i32 = pb::Protocol::RaydiumAmmV4 as i32;
-pub(crate) const PROTOCOL_RAYDIUM_CLMM: i32 = pb::Protocol::RaydiumClmm as i32;
-pub(crate) const PROTOCOL_RAYDIUM_CPMM: i32 = pb::Protocol::RaydiumCpmm as i32;
-pub(crate) const PROTOCOL_RAYDIUM_LAUNCHPAD: i32 = pb::Protocol::RaydiumLaunchpad as i32;
-pub(crate) fn pool_or_amm(amm: &[u8], amm_pool: &[u8]) -> Vec<u8> {
-    if amm_pool.is_empty() {
-        amm.to_vec()
-    } else {
-        amm_pool.to_vec()
-    }
-}
 
 fn collect_program_logs<T, F>(tx_meta: &TransactionStatusMeta, program_id_bytes: &[u8], mut parser: F) -> Vec<T>
 where

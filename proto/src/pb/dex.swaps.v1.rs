@@ -28,18 +28,22 @@ pub struct Swap {
     #[prost(enumeration="Protocol", tag="1")]
     pub protocol: i32,
     #[prost(bytes="vec", tag="2")]
-    pub amm: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes="vec", tag="3")]
-    pub amm_pool: ::prost::alloc::vec::Vec<u8>,
+    pub program_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, tag="3")]
+    pub stack_height: u32,
     #[prost(bytes="vec", tag="4")]
-    pub user: ::prost::alloc::vec::Vec<u8>,
+    pub amm: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes="vec", tag="5")]
-    pub input_mint: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag="6")]
-    pub input_amount: u64,
+    pub amm_pool: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="vec", tag="6")]
+    pub user: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes="vec", tag="7")]
-    pub output_mint: ::prost::alloc::vec::Vec<u8>,
+    pub input_mint: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint64, tag="8")]
+    pub input_amount: u64,
+    #[prost(bytes="vec", tag="9")]
+    pub output_mint: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag="10")]
     pub output_amount: u64,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -62,23 +66,48 @@ pub enum Protocol {
     RaydiumLaunchpad = 14,
 }
 impl Protocol {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "PROTOCOL_UNSPECIFIED",
-            Self::Boop => "PROTOCOL_BOOP",
-            Self::Darklake => "PROTOCOL_DARKLAKE",
-            Self::Dumpfun => "PROTOCOL_DUMPFUN",
-            Self::JupiterV4 => "PROTOCOL_JUPITER_V4",
-            Self::JupiterV6 => "PROTOCOL_JUPITER_V6",
-            Self::MeteoraDaam => "PROTOCOL_METEORA_DAAM",
-            Self::MeteoraDllm => "PROTOCOL_METEORA_DLLM",
-            Self::OrcaWhirlpool => "PROTOCOL_ORCA_WHIRLPOOL",
-            Self::Pumpfun => "PROTOCOL_PUMPFUN",
-            Self::PumpfunAmm => "PROTOCOL_PUMPFUN_AMM",
-            Self::RaydiumAmmV4 => "PROTOCOL_RAYDIUM_AMM_V4",
-            Self::RaydiumClmm => "PROTOCOL_RAYDIUM_CLMM",
-            Self::RaydiumCpmm => "PROTOCOL_RAYDIUM_CPMM",
-            Self::RaydiumLaunchpad => "PROTOCOL_RAYDIUM_LAUNCHPAD",
+            Protocol::Unspecified => "PROTOCOL_UNSPECIFIED",
+            Protocol::Boop => "PROTOCOL_BOOP",
+            Protocol::Darklake => "PROTOCOL_DARKLAKE",
+            Protocol::Dumpfun => "PROTOCOL_DUMPFUN",
+            Protocol::JupiterV4 => "PROTOCOL_JUPITER_V4",
+            Protocol::JupiterV6 => "PROTOCOL_JUPITER_V6",
+            Protocol::MeteoraDaam => "PROTOCOL_METEORA_DAAM",
+            Protocol::MeteoraDllm => "PROTOCOL_METEORA_DLLM",
+            Protocol::OrcaWhirlpool => "PROTOCOL_ORCA_WHIRLPOOL",
+            Protocol::Pumpfun => "PROTOCOL_PUMPFUN",
+            Protocol::PumpfunAmm => "PROTOCOL_PUMPFUN_AMM",
+            Protocol::RaydiumAmmV4 => "PROTOCOL_RAYDIUM_AMM_V4",
+            Protocol::RaydiumClmm => "PROTOCOL_RAYDIUM_CLMM",
+            Protocol::RaydiumCpmm => "PROTOCOL_RAYDIUM_CPMM",
+            Protocol::RaydiumLaunchpad => "PROTOCOL_RAYDIUM_LAUNCHPAD",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PROTOCOL_UNSPECIFIED" => Some(Self::Unspecified),
+            "PROTOCOL_BOOP" => Some(Self::Boop),
+            "PROTOCOL_DARKLAKE" => Some(Self::Darklake),
+            "PROTOCOL_DUMPFUN" => Some(Self::Dumpfun),
+            "PROTOCOL_JUPITER_V4" => Some(Self::JupiterV4),
+            "PROTOCOL_JUPITER_V6" => Some(Self::JupiterV6),
+            "PROTOCOL_METEORA_DAAM" => Some(Self::MeteoraDaam),
+            "PROTOCOL_METEORA_DLLM" => Some(Self::MeteoraDllm),
+            "PROTOCOL_ORCA_WHIRLPOOL" => Some(Self::OrcaWhirlpool),
+            "PROTOCOL_PUMPFUN" => Some(Self::Pumpfun),
+            "PROTOCOL_PUMPFUN_AMM" => Some(Self::PumpfunAmm),
+            "PROTOCOL_RAYDIUM_AMM_V4" => Some(Self::RaydiumAmmV4),
+            "PROTOCOL_RAYDIUM_CLMM" => Some(Self::RaydiumClmm),
+            "PROTOCOL_RAYDIUM_CPMM" => Some(Self::RaydiumCpmm),
+            "PROTOCOL_RAYDIUM_LAUNCHPAD" => Some(Self::RaydiumLaunchpad),
+            _ => None,
         }
     }
 }
