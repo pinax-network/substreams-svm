@@ -60,11 +60,11 @@ CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_pool (
 
             -- universal --
             sum(transactions)
-        GROUP BY protocol, program_id, amm, amm_pool
+        GROUP BY amm_pool, protocol, program_id, amm
     )
 )
 ENGINE = AggregatingMergeTree
-ORDER BY (protocol, program_id, amm, amm_pool)
+ORDER BY (amm_pool, protocol, program_id, amm )
 SETTINGS deduplicate_merge_projection_mode = 'rebuild'
 COMMENT 'Aggregating pools optimize for universal summary';
 

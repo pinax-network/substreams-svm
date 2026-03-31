@@ -1,5 +1,5 @@
 -- Pool activity (Transactions) --
-CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_token (
+CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_mint (
     -- timestamp & block number --
     min_timestamp         SimpleAggregateFunction(min, DateTime('UTC', 0)) COMMENT 'first timestamp seen',
     max_timestamp         SimpleAggregateFunction(max, DateTime('UTC', 0)) COMMENT 'last timestamp seen',
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_token (
     program_id              LowCardinality(String),
     amm                     LowCardinality(String),
     amm_pool                LowCardinality(String),
+    mint                    String,
 
     -- universal --
     transactions            SimpleAggregateFunction(sum, UInt64) COMMENT 'total number of transactions',
@@ -43,7 +44,7 @@ CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_token (
     INDEX idx_transactions      (transactions)               TYPE minmax             GRANULARITY 1,
 
     -- projections --
-    -- optimize for universal summary & distinct tokens --
+    -- optimize for universal summary & distinct mints --
     PROJECTION prj_group_by_pool (
         SELECT
             -- timestamp & block number --
@@ -57,7 +58,7 @@ CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_token (
             program_id,
             amm,
             amm_pool,
-            arraySort(groupArrayDistinct(token)),
+            arraySort(groupArrayDistinct(mint)),
 
             -- universal --
             sum(transactions)
@@ -65,12 +66,12 @@ CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_token (
     )
 )
 ENGINE = AggregatingMergeTree
-ORDER BY (token, protocol, program_id, amm, amm_pool)
+ORDER BY (mint, protocol, program_id, amm, amm_pool)
 SETTINGS deduplicate_merge_projection_mode = 'rebuild'
-COMMENT 'Aggregating pools by token optimize for universal summary & distinct tokens';
+COMMENT 'Aggregating pools by mint optimize for universal summary & distinct mints';
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_state_pools_aggregating_by_token_input_contract
-TO state_pools_aggregating_by_token
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_state_pools_aggregating_by_mint_input_mint
+TO state_pools_aggregating_by_mint
 AS
 SELECT
     -- timestamp & block number --
@@ -81,15 +82,15 @@ SELECT
 
     -- DEX identity
     protocol, program_id, amm, amm_pool,
-    input_contract AS token,
+    input_mint AS mint,
 
     -- universal --
     count() as transactions
 FROM swaps
-GROUP BY token, protocol, program_id, amm, amm_pool;
+GROUP BY mint, protocol, program_id, amm, amm_pool;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_state_pools_aggregating_by_token_output_contract
-TO state_pools_aggregating_by_token
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_state_pools_aggregating_by_mint_output_mint
+TO state_pools_aggregating_by_mint
 AS
 SELECT
     -- timestamp & block number --
@@ -100,9 +101,9 @@ SELECT
 
     -- DEX identity
     protocol, program_id, amm, amm_pool,
-    output_contract AS token,
+    output_mint AS mint,
 
     -- universal --
     count() as transactions
 FROM swaps
-GROUP BY token, protocol, program_id, amm, amm_pool;
+GROUP BY mint, protocol, program_id, amm, amm_pool;

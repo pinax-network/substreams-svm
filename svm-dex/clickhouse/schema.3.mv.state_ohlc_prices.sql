@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS state_ohlc_prices (
 ENGINE = AggregatingMergeTree
 ORDER BY (
     interval_min,
-    program_id, amm, amm_pool, mint0, mint1,
+    amm_pool, program_id, amm, mint0, mint1,
     timestamp
 )
 COMMENT 'OHLCV prices for AMM pools, aggregated by interval';
@@ -86,6 +86,11 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS mv_state_ohlc_prices
 TO state_ohlc_prices
 AS
 WITH
+    -- predefined intervals --
+    -- in minutes: 1m, 5m, 10m, 30m, 1h, 4h, 1d, 1w
+    [1, 5, 10, 30, 60, 240, 1440, 10080] AS intervals,
+
+    -- canonical token ordering
     (input_mint <= output_mint) AS dir,
     if (dir, input_mint,  output_mint) AS mint0,
     if (dir, output_mint, input_mint) AS mint1,
@@ -134,6 +139,6 @@ GROUP BY
     -- bar interval
     interval_min,
     -- canonical token ordering
-    pool, factory, protocol, token0, token1,
+    amm_pool, protocol, program_id, amm, mint0, mint1,
      -- bar beginning
     timestamp;
