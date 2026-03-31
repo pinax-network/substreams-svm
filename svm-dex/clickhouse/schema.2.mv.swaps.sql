@@ -1,6 +1,7 @@
 -- SVM Swaps --
 CREATE TABLE IF NOT EXISTS swaps AS BASE_EVENTS
 COMMENT 'Solana Swaps';
+
 ALTER TABLE swaps
     -- log --
     ADD COLUMN IF NOT EXISTS protocol                    Enum8(
@@ -29,24 +30,21 @@ ALTER TABLE swaps
     ADD COLUMN IF NOT EXISTS output_amount               UInt64 COMMENT 'Amount of output tokens received',
 
     -- indexes --
-    ADD INDEX IF NOT EXISTS idx_input_amount      (input_amount)      TYPE minmax                 GRANULARITY 1,
-    ADD INDEX IF NOT EXISTS idx_output_amount     (output_amount)     TYPE minmax                 GRANULARITY 1,
+    ADD INDEX IF NOT EXISTS         idx_input_amount                (input_amount) TYPE minmax GRANULARITY 1,
+    ADD INDEX IF NOT EXISTS         idx_output_amount               (output_amount) TYPE minmax GRANULARITY 1,
 
-    -- projections --
-    ADD PROJECTION IF NOT EXISTS prj_protocol_count ( SELECT protocol, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY protocol ),
-    ADD PROJECTION IF NOT EXISTS prj_amm_count ( SELECT amm, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY amm ),
-    ADD PROJECTION IF NOT EXISTS prj_amm_pool_count ( SELECT amm_pool, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY amm_pool ),
-    ADD PROJECTION IF NOT EXISTS prj_user_count ( SELECT user, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY user ),
-    ADD PROJECTION IF NOT EXISTS prj_input_mint_count ( SELECT input_mint, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY input_mint ),
-    ADD PROJECTION IF NOT EXISTS prj_output_mint_count ( SELECT output_mint, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY output_mint ),
-
-    -- minute + timestamp --
-    ADD PROJECTION IF NOT EXISTS prj_signature_by_timestamp ( SELECT signature, minute, timestamp GROUP BY signature, minute, timestamp ),
+    -- count() --
+    ADD PROJECTION IF NOT EXISTS    prj_protocol_count              ( SELECT protocol, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY protocol ),
+    ADD PROJECTION IF NOT EXISTS    prj_amm_count                   ( SELECT amm, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY amm ),
+    ADD PROJECTION IF NOT EXISTS    prj_amm_pool_count              ( SELECT amm_pool, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY amm_pool ),
+    ADD PROJECTION IF NOT EXISTS    prj_user_count                  ( SELECT user, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY user ),
+    ADD PROJECTION IF NOT EXISTS    prj_input_mint_count            ( SELECT input_mint, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY input_mint ),
+    ADD PROJECTION IF NOT EXISTS    prj_output_mint_count           ( SELECT output_mint, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY output_mint ),
 
     -- minute --
-    ADD PROJECTION IF NOT EXISTS prj_protocol_by_minute ( SELECT protocol, minute GROUP BY protocol, minute ),
-    ADD PROJECTION IF NOT EXISTS prj_amm_by_minute ( SELECT amm, minute GROUP BY amm, minute ),
-    ADD PROJECTION IF NOT EXISTS prj_amm_pool_by_minute ( SELECT amm_pool, minute GROUP BY amm_pool, minute ),
-    ADD PROJECTION IF NOT EXISTS prj_user_by_minute ( SELECT user, minute GROUP BY user, minute ),
-    ADD PROJECTION IF NOT EXISTS prj_input_mint_by_minute ( SELECT input_mint, minute GROUP BY input_mint, minute ),
-    ADD PROJECTION IF NOT EXISTS prj_output_mint_by_minute ( SELECT output_mint, minute GROUP BY output_mint, minute );
+    ADD PROJECTION IF NOT EXISTS    prj_protocol_by_minute          ( SELECT protocol, minute GROUP BY protocol, minute ),
+    ADD PROJECTION IF NOT EXISTS    prj_amm_by_minute               ( SELECT amm, minute GROUP BY amm, minute ),
+    ADD PROJECTION IF NOT EXISTS    prj_amm_pool_by_minute          ( SELECT amm_pool, minute GROUP BY amm_pool, minute ),
+    ADD PROJECTION IF NOT EXISTS    prj_user_by_minute              ( SELECT user, minute GROUP BY user, minute ),
+    ADD PROJECTION IF NOT EXISTS    prj_input_mint_by_minute        ( SELECT input_mint, minute GROUP BY input_mint, minute ),
+    ADD PROJECTION IF NOT EXISTS    prj_output_mint_by_minute       ( SELECT output_mint, minute GROUP BY output_mint, minute );

@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS BASE_EVENTS (
     INDEX idx_timestamp         (timestamp)         TYPE minmax                 GRANULARITY 1,
     INDEX idx_block_num         (block_num)         TYPE minmax                 GRANULARITY 1,
 
-    -- projections --
+    -- count() --
     PROJECTION prj_fee_payer_count ( SELECT fee_payer, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY fee_payer ),
     PROJECTION prj_signer_count ( SELECT signer, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY signer ),
     PROJECTION prj_program_id_count ( SELECT program_id, count(), min(block_num), max(block_num), min(timestamp), max(timestamp), min(minute), max(minute) GROUP BY program_id ),
