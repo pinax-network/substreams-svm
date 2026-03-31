@@ -44,7 +44,7 @@ fn handle_balances(
 ) {
     let account = base58::encode(&data.account);
     let row = tables
-        .upsert_row("balances_native", account.clone())
+        .upsert_row("native_balances", account.clone())
         .set("account", account)
         .set("amount", data.amount);
 

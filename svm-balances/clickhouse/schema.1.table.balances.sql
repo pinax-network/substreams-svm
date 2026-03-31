@@ -7,10 +7,10 @@ CREATE TABLE IF NOT EXISTS balances (
 
     -- balance --
     program_id      LowCardinality(String),
+    mint            LowCardinality(String),
     account         String,
     amount          UInt64,
-    mint            Nullable(String),
-    decimals        Nullable(UInt8),
+    decimals        UInt8,
 
     -- indexes --
     INDEX idx_program_id (program_id) TYPE set(2) GRANULARITY 1,
@@ -26,7 +26,7 @@ SETTINGS deduplicate_merge_projection_mode = 'rebuild'
 COMMENT 'SPL Token balances (single balance per-block per-account/mint)';
 
 -- Native Token Balances --
-CREATE TABLE IF NOT EXISTS balances_native (
+CREATE TABLE IF NOT EXISTS native_balances (
     -- block --
     block_num       UInt32,
     block_hash      String,
