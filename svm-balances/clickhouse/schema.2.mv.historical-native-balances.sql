@@ -1,5 +1,5 @@
 -- Historical Native balances by address --
-CREATE TABLE IF NOT EXISTS historical_balances_state (
+CREATE TABLE IF NOT EXISTS historical_native_balances_state (
     -- block --
     timestamp            DateTime(0, 'UTC') COMMENT 'the start of the aggregate window',
     interval_min         UInt16 DEFAULT 1 COMMENT 'bar interval in minutes (1m, 5m, 10m, 30m, 1h, 4h, 1d, 1w)',
@@ -10,16 +10,16 @@ CREATE TABLE IF NOT EXISTS historical_balances_state (
     account              String,
 
     -- ohlc --
-    open                 AggregateFunction(argMin, UInt256, UInt32),
-    high                 SimpleAggregateFunction(max, UInt256),
-    low                  SimpleAggregateFunction(min, UInt256),
-    close                AggregateFunction(argMax, UInt256, UInt32),
+    open                 AggregateFunction(argMin, UInt64, UInt32),
+    high                 SimpleAggregateFunction(max, UInt64),
+    low                  SimpleAggregateFunction(min, UInt64),
+    close                AggregateFunction(argMax, UInt64, UInt32),
     transactions         SimpleAggregateFunction(sum, UInt64) COMMENT 'total number of transactions in the window'
 )
 ENGINE = AggregatingMergeTree
 ORDER BY (interval_min, account, timestamp);
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_historical_native_balances
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_historical_native_balances_state
 TO historical_native_balances_state
 AS
 WITH
@@ -38,10 +38,10 @@ SELECT
     account,
 
     -- ohlc --
-    argMinState(balance, b.block_num) AS open,
-    max(balance) AS high,
-    min(balance) AS low,
-    argMaxState(balance, b.block_num) AS close,
+    argMinState(amount, b.block_num) AS open,
+    max(amount) AS high,
+    min(amount) AS low,
+    argMaxState(amount, b.block_num) AS close,
     count() AS transactions
 FROM native_balances AS b
 GROUP BY interval_min, account, timestamp;

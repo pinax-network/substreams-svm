@@ -12,16 +12,16 @@ CREATE TABLE IF NOT EXISTS historical_balances_state (
     account              String,
 
     -- ohlc --
-    open                 AggregateFunction(argMin, UInt256, UInt32),
-    high                 SimpleAggregateFunction(max, UInt256),
-    low                  SimpleAggregateFunction(min, UInt256),
-    close                AggregateFunction(argMax, UInt256, UInt32),
+    open                 AggregateFunction(argMin, UInt64, UInt32),
+    high                 SimpleAggregateFunction(max, UInt64),
+    low                  SimpleAggregateFunction(min, UInt64),
+    close                AggregateFunction(argMax, UInt64, UInt32),
     transactions         SimpleAggregateFunction(sum, UInt64) COMMENT 'total number of transactions in the window'
 )
 ENGINE = AggregatingMergeTree
 ORDER BY (interval_min, account, program_id, mint, timestamp);
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_historical_balances
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_historical_balances_state
 TO historical_balances_state
 AS
 WITH
@@ -42,10 +42,10 @@ SELECT
     account,
 
     -- ohlc --
-    argMinState(balance, b.block_num) AS open,
-    max(balance) AS high,
-    min(balance) AS low,
-    argMaxState(balance, b.block_num) AS close,
+    argMinState(amount, b.block_num) AS open,
+    max(amount) AS high,
+    min(amount) AS low,
+    argMaxState(amount, b.block_num) AS close,
     count() AS transactions
-FROM erc20_balances AS b
+FROM balances AS b
 GROUP BY interval_min, account, program_id, mint, timestamp;
