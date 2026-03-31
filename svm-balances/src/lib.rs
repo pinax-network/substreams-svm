@@ -16,6 +16,10 @@ pub fn db_out(
     spl_token::process_events(&mut tables, &clock, &spl_token);
     native_token::process_events(&mut tables, &clock, &native_token);
 
+    // ONLY include blocks if events are present
+    if tables.all_row_count() > 0 {
+        set_clock(&clock, tables.create_row("blocks", [("block_num", clock.number.to_string())]));
+    }
     substreams::log::info!("Total rows {}", tables.all_row_count());
     Ok(tables.to_database_changes())
 }
