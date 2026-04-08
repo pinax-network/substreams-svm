@@ -14,8 +14,6 @@ CREATE TABLE IF NOT EXISTS TEMPLATE_MINTS_STATE (
     INDEX idx_is_deleted (is_deleted) TYPE set(2) GRANULARITY 1
 )
 ENGINE = ReplacingMergeTree(version, is_deleted)
--- TTL to automatically clean up old data
-TTL timestamp + INTERVAL 1 DAY
 ORDER BY (mint);
 
 -- TTL to clean up deleted rows after 0 seconds (immediate cleanup on merge)
