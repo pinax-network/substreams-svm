@@ -8,7 +8,7 @@ build:
 
 .PHONY: pack
 pack: build
-	substreams pack
+	substreams pack -o ../spkg/metaplex-v0.3.3.spkg
 
 .PHONY: noop
 noop: build

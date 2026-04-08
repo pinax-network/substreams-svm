@@ -1,13 +1,13 @@
 specVersion: v0.1.0
 package:
   name: svm_clickhouse_metadata
-  version: v0.3.2
+  version: v0.3.3
   url: https://github.com/pinax-network/substreams-svm
   description: SPL Token & Metaplex metadata events for Solana blockchains (ClickHouse).
   image: ../../image.png
 
 imports:
-  db: ../../spkg/svm-metadata-v0.3.0.spkg
+  db: ../../spkg/svm-metadata-v0.3.3.spkg
 
 modules:
   - name: db_out

@@ -4,8 +4,8 @@ STOP_BLOCK ?= 350002000
 PARALLEL_JOBS ?= 500
 
 .PHONY: pack
-pack:
-	substreams pack
+pack: build
+	substreams pack -o ../../spkg/svm-clickhouse-metadata-v0.3.3.spkg
 
 .PHONY: dev
 dev:
