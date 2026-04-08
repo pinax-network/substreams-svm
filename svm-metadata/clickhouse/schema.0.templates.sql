@@ -31,9 +31,6 @@ CREATE TABLE IF NOT EXISTS base_events (
     INDEX idx_signer            (signer)            TYPE bloom_filter(0.005)    GRANULARITY 1
 )
 ENGINE = ReplacingMergeTree
--- TTL to automatically clean up old data
--- production tables are derived from MV's on these base tables
-TTL timestamp + INTERVAL 1 DAY
 ORDER BY (
     timestamp, block_num,
     block_hash, transaction_index, instruction_index
