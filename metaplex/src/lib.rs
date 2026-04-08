@@ -5,15 +5,7 @@ use proto::pb::solana::metaplex::v1 as pb;
 use substreams::errors::Error;
 use substreams_solana::block_view::InstructionView;
 use substreams_solana::pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction};
-
-// Metaplex Token Metadata Program ID (metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s)
-pub const METAPLEX_TOKEN_METADATA_PROGRAM_ID: [u8; 32] = [
-    11, 112, 101, 177, 227, 209, 124, 69, 56, 157, 82, 127, 107, 4, 195, 205, 88, 184, 108, 115, 26, 160, 253, 181, 73, 182, 209, 188, 3, 248, 41, 70,
-];
-
-pub fn is_metaplex_program(program_id: &[u8]) -> bool {
-    program_id == &METAPLEX_TOKEN_METADATA_PROGRAM_ID
-}
+use substreams_solana_idls::metaplex::token_metadata;
 
 #[substreams::handlers::map]
 fn map_events(block: Block) -> Result<pb::Events, Error> {
@@ -45,11 +37,11 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
 fn process_instruction(instruction: &InstructionView) -> Option<pb::Instruction> {
     let program_id = instruction.program_id().0;
 
-    if !is_metaplex_program(program_id) {
+    if program_id != &token_metadata::PROGRAM_ID {
         return None;
     }
 
-    metadata::unpack_metadata(instruction, program_id).map(|parsed| pb::Instruction {
+    metadata::unpack_metadata(instruction).map(|parsed| pb::Instruction {
         program_id: program_id.to_vec(),
         stack_height: instruction.stack_height(),
         is_root: instruction.is_root(),
