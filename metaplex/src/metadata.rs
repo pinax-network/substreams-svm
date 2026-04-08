@@ -80,6 +80,36 @@ pub fn unpack_metadata(instruction: &InstructionView) -> Option<pb::instruction:
                 uri,
             }))
         }
+        // CreateV1 (disc 42) — unified v1.13+ instruction
+        // Accounts: metadata[0], master_edition[1], mint[2], authority[3], payer[4], update_authority[5]
+        Ok(TokenMetadataInstruction::Create(args)) => {
+            Some(pb::instruction::Instruction::CreateMetadataAccount(pb::CreateMetadataAccount {
+                metadata: instruction.accounts().get(0)?.0.to_vec(),
+                mint: instruction.accounts().get(2)?.0.to_vec(),
+                mint_authority: instruction.accounts().get(3)?.0.to_vec(),
+                payer: instruction.accounts().get(4)?.0.to_vec(),
+                update_authority: instruction.accounts().get(5)?.0.to_vec(),
+                name: trim_null(&args.name),
+                symbol: trim_null(&args.symbol),
+                uri: trim_null(&args.uri),
+            }))
+        }
+        // UpdateV1 (disc 50) — unified v1.13+ instruction
+        // Accounts: authority[0], delegate_record[1], token[2], mint[3], metadata[4]
+        Ok(TokenMetadataInstruction::Update(args)) => {
+            let (name, symbol, uri) = if let Some(data) = args.data {
+                (Some(trim_null(&data.name)), Some(trim_null(&data.symbol)), Some(trim_null(&data.uri)))
+            } else {
+                (None, None, None)
+            };
+            Some(pb::instruction::Instruction::UpdateMetadataAccount(pb::UpdateMetadataAccount {
+                metadata: instruction.accounts().get(4)?.0.to_vec(),
+                update_authority: instruction.accounts().get(0)?.0.to_vec(),
+                name,
+                symbol,
+                uri,
+            }))
+        }
         _ => None,
     }
 }
