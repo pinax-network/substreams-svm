@@ -9,7 +9,7 @@ build:
 
 .PHONY: pack
 pack: build
-	substreams pack
+	substreams pack -o ../spkg/svm-balances-v0.3.2.spkg
 
 .PHONY: noop
 noop: build

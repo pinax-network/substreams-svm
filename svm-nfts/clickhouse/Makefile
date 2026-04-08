@@ -3,9 +3,12 @@ START_BLOCK ?= 0
 STOP_BLOCK ?= 363010000
 PARALLEL_JOBS ?= 500
 
+.PHONY: build
+build: schema
+
 .PHONY: pack
-pack:
-	substreams pack
+pack: build
+	substreams pack -o ../../spkg/svm-clickhouse-nfts-v1.0.0.spkg
 
 .PHONY: dev
 dev:

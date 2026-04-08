@@ -8,7 +8,7 @@ build:
 
 .PHONY: pack
 pack: build
-	substreams pack
+	substreams pack -o ../../spkg/spl-token-v0.3.0.spkg
 
 .PHONY: noop
 noop: build

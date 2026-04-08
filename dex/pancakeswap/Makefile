@@ -9,7 +9,7 @@ build:
 
 .PHONY: pack
 pack: build
-	substreams pack
+	substreams pack -o ../../spkg/pancakeswap-v0.4.0.spkg
 
 .PHONY: gui
 gui: build

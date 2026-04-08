@@ -9,7 +9,7 @@ build:
 
 .PHONY: pack
 pack: build
-	substreams pack
+	substreams pack -o ../spkg/svm-transfers-v0.3.0.spkg
 
 .PHONY: gui
 gui: build

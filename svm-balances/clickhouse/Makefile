@@ -12,9 +12,12 @@ schema:
 		echo "" >> schema.sql; \
 	done
 
+.PHONY: build
+build: schema
+
 .PHONY: pack
-pack: schema
-	substreams pack
+pack: build
+	substreams pack -o ../../spkg/svm-clickhouse-balances-v0.3.2.spkg
 
 .PHONY: dev
 dev:
