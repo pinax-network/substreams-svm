@@ -8,7 +8,7 @@ build: schema
 
 .PHONY: pack
 pack: build
-	substreams pack -o ../../spkg/svm-clickhouse-metadata-v0.3.2.spkg
+	substreams pack -o ../../spkg/svm-clickhouse-metadata-v0.3.3.spkg
 
 .PHONY: dev
 dev:
