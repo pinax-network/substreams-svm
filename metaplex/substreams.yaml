@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: metaplex
-  version: v0.3.0
+  version: v0.3.3
   url: https://github.com/pinax-network/substreams-solana
   description: Metaplex Token Metadata
   image: ../image.png
