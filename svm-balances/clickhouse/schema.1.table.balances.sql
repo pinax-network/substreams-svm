@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS balances (
     INDEX idx_decimals (decimals) TYPE minmax GRANULARITY 1,
 
     -- projections --
-    PROJECTION prj_mint (SELECT * ORDER BY (mint, account))
+    PROJECTION prj_mint (SELECT * ORDER BY (mint, account)),
+    PROJECTION prj_mint_count (SELECT mint, min(amount), max(amount), count(), max(block_num), min(block_num), max(timestamp), min(timestamp) GROUP BY mint),
+    PROJECTION prj_count (SELECT min(amount), max(amount), count(), max(block_num), min(block_num), max(timestamp), min(timestamp))
 )
 ENGINE = ReplacingMergeTree(block_num)
 ORDER BY (account)
@@ -37,7 +39,10 @@ CREATE TABLE IF NOT EXISTS native_balances (
     amount          UInt64,
 
     -- indexes --
-    INDEX idx_amount (amount) TYPE minmax GRANULARITY 1
+    INDEX idx_amount (amount) TYPE minmax GRANULARITY 1,
+
+    -- projections --
+    PROJECTION prj_count (SELECT min(amount), max(amount), count(), max(block_num), min(block_num), max(timestamp), min(timestamp))
 )
 ENGINE = ReplacingMergeTree(block_num)
 ORDER BY (account)
