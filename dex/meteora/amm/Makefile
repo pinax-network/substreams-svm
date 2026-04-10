@@ -3,13 +3,15 @@ START_BLOCK ?= 400000000
 STOP_BLOCK ?= 400005000
 PARALLEL_JOBS ?= 100
 
+.DEFAULT_GOAL := pack
+
 .PHONY: build
 build:
 	cargo build --target wasm32-unknown-unknown --release
 
 .PHONY: pack
 pack: build
-	substreams pack -o ../../../spkg/meteora-amm-v0.4.0.spkg
+	substreams pack -o ../spkg/{spkgDefaultName}
 
 .PHONY: gui
 gui: build

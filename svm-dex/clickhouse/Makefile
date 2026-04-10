@@ -3,6 +3,8 @@ START_BLOCK ?= 350000000
 STOP_BLOCK ?= 350002000
 PARALLEL_JOBS ?= 500
 
+.DEFAULT_GOAL := pack
+
 .PHONY: schema
 schema:
 	@echo "-- This file is generated. Do not edit." > schema.sql
@@ -12,12 +14,9 @@ schema:
 		echo "" >> schema.sql; \
 	done
 
-.PHONY: build
-build: schema
-
 .PHONY: pack
-pack: build
-	substreams pack -o ../../spkg/svm-clickhouse-dex-v0.4.0.spkg
+pack: schema
+	substreams pack -o ../../spkg/{spkgDefaultName}
 
 .PHONY: dev
 dev:

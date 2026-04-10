@@ -3,13 +3,15 @@ START_BLOCK ?= 350000000
 STOP_BLOCK ?= 350002000
 PARALLEL_JOBS ?= 500
 
+.DEFAULT_GOAL := pack
+
 .PHONY: build
 build:
 	cargo build --target wasm32-unknown-unknown --release
 
 .PHONY: pack
 pack: build
-	substreams pack -o ../spkg/svm-metadata-v0.3.3.spkg
+	substreams pack -o ../spkg/{spkgDefaultName}
 
 .PHONY: noop
 noop: build

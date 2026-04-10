@@ -3,20 +3,7 @@ START_BLOCK ?= 350000000
 STOP_BLOCK ?= 350002000
 PARALLEL_JOBS ?= 500
 
-.PHONY: build
-build: schema
-
-.PHONY: pack
-pack: build
-	substreams pack -o ../../spkg/svm-clickhouse-metadata-v0.3.3.spkg
-
-.PHONY: dev
-dev:
-	substreams-sink-sql run clickhouse://default:@localhost:9000/default substreams.yaml -e $(ENDPOINT) $(START_BLOCK):$(STOP_BLOCK) --undo-buffer-size 100 --on-module-hash-mistmatch=warn --batch-block-flush-interval 100 --infinite-retry
-
-.PHONY: setup
-setup: pack
-	substreams-sink-sql setup clickhouse://default:@localhost:9000/default substreams.yaml
+.DEFAULT_GOAL := pack
 
 .PHONY: schema
 schema:
@@ -26,3 +13,15 @@ schema:
 		cat "$$f" >> schema.sql; \
 		echo "" >> schema.sql; \
 	done
+
+.PHONY: pack
+pack: schema
+	substreams pack -o ../../spkg/{spkgDefaultName}
+
+.PHONY: dev
+dev:
+	substreams-sink-sql run clickhouse://default:@localhost:9000/default substreams.yaml -e $(ENDPOINT) $(START_BLOCK):$(STOP_BLOCK) --undo-buffer-size 100 --on-module-hash-mistmatch=warn --batch-block-flush-interval 100 --infinite-retry
+
+.PHONY: setup
+setup: pack
+	substreams-sink-sql setup clickhouse://default:@localhost:9000/default substreams.yaml

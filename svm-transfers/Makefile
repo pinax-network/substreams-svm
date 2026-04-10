@@ -3,13 +3,15 @@ START_BLOCK ?= 350000000
 STOP_BLOCK ?= 350002000
 PARALLEL_JOBS ?= 100
 
+.DEFAULT_GOAL := pack
+
 .PHONY: build
 build:
 	cargo build --target wasm32-unknown-unknown --release
 
 .PHONY: pack
 pack: build
-	substreams pack -o ../spkg/svm-transfers-v0.3.0.spkg
+	substreams pack -o ../spkg/{spkgDefaultName}
 
 .PHONY: gui
 gui: build

@@ -2,13 +2,15 @@ ENDPOINT ?= solana.substreams.pinax.network:443
 START_BLOCK ?= 156000000
 PARALLEL_JOBS ?= 500
 
+.DEFAULT_GOAL := pack
+
 .PHONY: build
 build:
 	cargo build --target wasm32-unknown-unknown --release
 
 .PHONY: pack
 pack: build
-	substreams pack -o ../spkg/metaplex-v0.3.3.spkg
+	substreams pack -o ../spkg/{spkgDefaultName}
 
 .PHONY: noop
 noop: build

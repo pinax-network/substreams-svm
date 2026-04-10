@@ -2,13 +2,15 @@ ENDPOINT ?= solana.substreams.pinax.network:443
 START_BLOCK ?= 355001216
 PARALLEL_JOBS ?= 500
 
+.DEFAULT_GOAL := pack
+
 .PHONY: build
 build:
 	cargo build --target wasm32-unknown-unknown --release
 
 .PHONY: pack
 pack: build
-	substreams pack -o ../../spkg/native-token-v0.3.0.spkg
+	substreams pack -o ../spkg/{spkgDefaultName}
 
 .PHONY: noop
 noop: build
