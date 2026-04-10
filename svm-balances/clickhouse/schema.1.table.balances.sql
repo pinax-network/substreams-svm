@@ -40,11 +40,12 @@ CREATE TABLE IF NOT EXISTS native_balances (
     amount          UInt64,
 
     -- indexes --
-    INDEX idx_amount (amount) TYPE minmax GRANULARITY 1
+    INDEX idx_amount (amount) TYPE minmax GRANULARITY 1,
 
     -- count() --
     PROJECTION prj_count ( SELECT min(amount), max(amount), count(), max(block_num), min(block_num), max(timestamp), min(timestamp) ),
 )
 ENGINE = ReplacingMergeTree(block_num)
 ORDER BY (account)
+SETTINGS deduplicate_merge_projection_mode = 'rebuild'
 COMMENT 'Native SOL balances (single balance per-block per-account)';
