@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: svm_clickhouse_balances
-  version: v0.3.2
+  version: v0.3.3
   url: https://github.com/pinax-network/substreams-svm
   description: SPL, SPL-2022 & Native token balances for Solana (ClickHouse).
   image: ../../image.png
