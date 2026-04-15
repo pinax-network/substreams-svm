@@ -11,9 +11,9 @@ balances AS (
         argMax(b.amount, b.block_num) AS amount,
         mint,
         decimals
-    FROM `solana:svm-balances@v0.3.3`.balances AS b
+    FROM `solana:svm-balances@v0.3.3`.balances_by_account AS b
     WHERE b.account IN (SELECT account FROM owners)
-    GROUP BY b.mint, b.account, b.program_id, b.decimals
+    GROUP BY b.account, b.program_id, b.mint, b.decimals
     HAVING amount > 0
     ORDER BY timestamp DESC, account, mint
     LIMIT 10
