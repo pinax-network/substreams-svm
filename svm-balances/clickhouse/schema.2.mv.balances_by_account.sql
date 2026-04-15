@@ -1,5 +1,5 @@
 -- SPL Token Balances (account-first lookup path) --
-CREATE TABLE IF NOT EXISTS balances_by_account ON CLUSTER 'tokenapis-b' AS balances
+CREATE TABLE IF NOT EXISTS balances_by_account AS balances
 ENGINE = ReplacingMergeTree(block_num, is_deleted)
 ORDER BY (account, program_id, mint)
 SETTINGS deduplicate_merge_projection_mode = 'rebuild'
