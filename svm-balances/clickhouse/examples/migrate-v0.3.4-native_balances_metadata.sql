@@ -16,20 +16,7 @@ WHERE amount > 0;
 SYSTEM REFRESH VIEW native_balances_metadata;
 
 -- Check refresh progress and latest status.
-SELECT
-    database,
-    view,
-    status,
-    last_refresh_time,
-    last_success_time,
-    last_success_duration_ms,
-    progress,
-    read_rows,
-    read_bytes,
-    total_rows,
-    written_rows,
-    written_bytes,
-    exception
+SELECT *
 FROM system.view_refreshes
 WHERE view = 'native_balances_metadata';
 

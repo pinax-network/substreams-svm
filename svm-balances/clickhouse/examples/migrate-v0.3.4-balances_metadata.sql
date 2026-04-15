@@ -19,20 +19,7 @@ GROUP BY program_id, mint;
 SYSTEM REFRESH VIEW balances_metadata;
 
 -- Check refresh progress and latest status.
-SELECT
-    database,
-    view,
-    status,
-    last_refresh_time,
-    last_success_time,
-    last_success_duration_ms,
-    progress,
-    read_rows,
-    read_bytes,
-    total_rows,
-    written_rows,
-    written_bytes,
-    exception
+SELECT *
 FROM system.view_refreshes
 WHERE view = 'balances_metadata';
 
