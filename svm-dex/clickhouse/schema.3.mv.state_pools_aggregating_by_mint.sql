@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_mint (
     INDEX idx_transactions      (transactions)               TYPE minmax             GRANULARITY 1,
 
     -- projections --
+    -- optimize for distinct mints by pool --
+    PROJECTION prj_mints_by_pool ( SELECT amm_pool, mint GROUP BY amm_pool, mint ),
     -- optimize for universal summary & distinct mints --
     PROJECTION prj_group_by_pool (
         SELECT
