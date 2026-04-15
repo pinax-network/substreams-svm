@@ -33,7 +33,8 @@ ALTER TABLE TEMPLATE_METADATA_AUTHORITY
 CREATE TABLE IF NOT EXISTS metadata_mint_state AS TEMPLATE_METADATA;
 ALTER TABLE metadata_mint_state
     ADD COLUMN IF NOT EXISTS mint LowCardinality(String) AFTER metadata,
-    ADD PROJECTION IF NOT EXISTS prj_mint (SELECT * ORDER BY (mint));
+    ADD PROJECTION IF NOT EXISTS prj_mint (SELECT * ORDER BY (mint)),
+    ADD PROJECTION IF NOT EXISTS prj_mint_metadata (SELECT mint, argMax(metadata, version) GROUP BY mint);
 
 /* MINT AUTHORITY */
 CREATE TABLE IF NOT EXISTS metadata_mint_authority_state AS TEMPLATE_METADATA_AUTHORITY;
