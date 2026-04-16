@@ -52,6 +52,10 @@ FROM balances;
 DETACH TABLE `solana:svm-balances@v0.3.3`.mv_balances_by_account
 ON CLUSTER `tokenapis-b`;
 
+-- ATTACH the materialized view again to ensure it's active and picking up new data
+ATTACH TABLE `solana:svm-balances@v0.3.3`.mv_balances_by_account
+ON CLUSTER `tokenapis-b`;
+
 -- insert after last detach
 INSERT INTO balances_by_account
 SELECT
@@ -64,7 +68,3 @@ SELECT
     decimals
 FROM balances
 WHERE block_num > (SELECT max(block_num) FROM balances_by_account);
-
--- ATTACH the materialized view again to ensure it's active and picking up new data
-ATTACH TABLE `solana:svm-balances@v0.3.3`.mv_balances_by_account
-ON CLUSTER `tokenapis-b`;
