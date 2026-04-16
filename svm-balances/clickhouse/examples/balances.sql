@@ -1,7 +1,7 @@
 WITH owners AS (
     SELECT owner, account
     FROM `solana:svm-accounts@v0.3.1`.owner_state AS o
-    WHERE owner IN ['GXYBNgyYKbSLr938VJCpmGLCUaAHWsncTi7jDoQSdFR9']
+    WHERE owner IN ['6FwAyRbvKwY4uAzgeWaXUHEqfSDaFcdcZsbBh1TQtnuA']
 ),
 balances AS (
     SELECT
