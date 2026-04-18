@@ -51,7 +51,7 @@ This guide is a quick map for contributors and coding agents working in this mon
 
 ### DEX crates (`dex/*`)
 
-- Core/high-volume: Raydium (`amm-v4`, `clmm`, `cpmm`, `launchpad`), Jupiter (`v4`, `v6`), Pump.fun (`bonding_curve`, `amm`), Meteora (`amm`, `daam`, `dllm`), Orca (`whirlpool`).
+- Core/high-volume: Raydium (`amm-v4`, `clmm`, `cpmm`, `launchpad`), Jupiter (`v4`, `v6`), Pump.fun (`bonding_curve`, `amm`), Meteora (`amm`, `daam`, `dlmm`), Orca (`whirlpool`).
 - Additional protocols: BonkSwap, Lifinity, Phoenix, OpenBook, PancakeSwap, Moonshot, Stabble, Darklake, DumpFun, GoonFi, Heaven, Plasma, Saros, Aldrin, Boop, ByReal, DFlow, Drift, Obric (`v2`, `v3`), OKX DEX, Sanctum, Serum, SolFi (`v1`, `v2`), PumpSwap.
 
 ### Non-DEX protocol crates

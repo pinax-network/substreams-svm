@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package meteora.dllm.v1;
+package meteora.dlmm.v1;
 
 message Events { repeated Transaction transactions = 1; }
 

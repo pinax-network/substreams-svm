@@ -23,7 +23,7 @@ protobuf:
     - v1/dex/raydium-clmm.proto
     - v1/dex/raydium-cpmm.proto
     - v1/dex/raydium-launchpad.proto
-    - v1/dex/meteora-dllm.proto
+    - v1/dex/meteora-dlmm.proto
     - v1/dex/meteora-daam.proto
     - v1/dex/meteora-amm.proto
     # metadata

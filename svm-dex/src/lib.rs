@@ -13,7 +13,7 @@ fn protocol_slug(protocol: i32) -> &'static str {
         pb::Protocol::JupiterV4 => "jupiter_v4",
         pb::Protocol::JupiterV6 => "jupiter_v6",
         pb::Protocol::MeteoraDaam => "meteora_daam",
-        pb::Protocol::MeteoraDllm => "meteora_dllm",
+        pb::Protocol::MeteoraDlmm => "meteora_dlmm",
         pb::Protocol::OrcaWhirlpool => "orca_whirlpool",
         pb::Protocol::Pumpfun => "pumpfun",
         pb::Protocol::PumpfunAmm => "pumpfun_amm",

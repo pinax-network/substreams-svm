@@ -12,7 +12,7 @@ ALTER TABLE swaps
         'jupiter_v4' = 4,
         'jupiter_v6' = 5,
         'meteora_daam' = 6,
-        'meteora_dllm' = 7,
+        'meteora_dlmm' = 7,
         'orca_whirlpool' = 8,
         'pumpfun' = 9,
         'pumpfun_amm' = 10,
