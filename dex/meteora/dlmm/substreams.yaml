@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
-  name: meteora_dllm
-  version: v0.4.0
+  name: meteora_dlmm
+  version: v0.4.1
   url: https://github.com/pinax-network/substreams-solana
   description: Meteora DLMM swap events for Solana.
   image: ../../../image.png
@@ -12,11 +12,11 @@ imports:
 binaries:
   default:
     type: wasm/rust-v1+wasm-bindgen-shims
-    file: ../../../target/wasm32-unknown-unknown/release/meteora_dllm.wasm
+    file: ../../../target/wasm32-unknown-unknown/release/meteora_dlmm.wasm
 
 protobuf:
   files:
-    - v1/dex/meteora-dllm.proto
+    - v1/dex/meteora-dlmm.proto
   importPaths:
     - ../../../proto
 
@@ -30,6 +30,6 @@ modules:
       query:
         string: "program:LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
     output:
-      type: proto:meteora.dllm.v1.Events
+      type: proto:meteora.dlmm.v1.Events
 
 network: solana

@@ -1,5 +1,5 @@
 [package]
-name = "meteora_dllm"
+name = "meteora_dlmm"
 description = "Meteora DLMM"
 edition = { workspace = true }
 version = { workspace = true }

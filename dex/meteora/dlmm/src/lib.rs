@@ -1,11 +1,11 @@
 use common::solana::{get_fee_payer, get_signers};
-use proto::pb::meteora::dllm::v1 as pb;
+use proto::pb::meteora::dlmm::v1 as pb;
 use substreams::errors::Error;
 use substreams_solana::{
     block_view::InstructionView,
     pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction},
 };
-use substreams_solana_idls::meteora::dllm;
+use substreams_solana_idls::meteora::dlmm;
 
 #[substreams::handlers::map]
 fn map_events(block: Block) -> Result<pb::Events, Error> {
@@ -35,12 +35,12 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
 
 fn process_instruction(ix: &InstructionView) -> Option<pb::Instruction> {
     let program_id = ix.program_id().0;
-    if program_id != &dllm::PROGRAM_ID {
+    if program_id != &dlmm::PROGRAM_ID {
         return None;
     }
 
     // 1) Try to decode Anchor "event CPI" first and EARLY-RETURN if it matches.
-    if let Ok(dllm::anchor_cpi_event::MeteoraDllmAnchorCpiEvent::Swap(event)) = dllm::anchor_cpi_event::unpack(ix.data()) {
+    if let Ok(dlmm::anchor_cpi_event::MeteoraDlmmAnchorCpiEvent::Swap(event)) = dlmm::anchor_cpi_event::unpack(ix.data()) {
         return Some(pb::Instruction {
             program_id: program_id.to_vec(),
             stack_height: ix.stack_height(),
@@ -60,9 +60,9 @@ fn process_instruction(ix: &InstructionView) -> Option<pb::Instruction> {
         });
     }
 
-    match dllm::instructions::unpack(ix.data()) {
-        Ok(dllm::instructions::MeteoraDllmInstruction::Swap(evt)) => {
-            let accounts = dllm::accounts::get_swap_accounts(ix).ok()?;
+    match dlmm::instructions::unpack(ix.data()) {
+        Ok(dlmm::instructions::MeteoraDlmmInstruction::Swap(evt)) => {
+            let accounts = dlmm::accounts::get_swap_accounts(ix).ok()?;
             Some(pb::Instruction {
                 program_id: program_id.to_vec(),
                 stack_height: ix.stack_height(),

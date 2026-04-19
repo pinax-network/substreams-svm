@@ -1,7 +1,7 @@
 use common::solana::{get_fee_payer, get_signers, is_failed, is_invoke, is_success, parse_invoke_depth, parse_program_data, parse_program_id, parse_raydium_log};
 use proto::pb::{
     boop::v1 as boop_pb, darklake::v1 as darklake_pb, dex::swaps::v1 as pb, dumpfun::v1 as dumpfun_pb, jupiter::v1 as jupiter_pb,
-    meteora::daam::v1 as meteora_daam_pb, meteora::dllm::v1 as meteora_dllm_pb, orca::v1 as orca_pb,
+    meteora::daam::v1 as meteora_daam_pb, meteora::dlmm::v1 as meteora_dlmm_pb, orca::v1 as orca_pb,
     pumpfun::amm::v1 as pumpfun_amm_pb, pumpfun::v1 as pumpfun_pb, raydium::amm::v1 as raydium_amm_pb, raydium::clmm::v1 as raydium_clmm_pb,
     raydium::cpmm::v1 as raydium_cpmm_pb, raydium::launchpad::v1 as raydium_launchpad_pb,
 };
@@ -360,11 +360,11 @@ pub(crate) fn decode_meteora_daam_transaction(tx: &ConfirmedTransaction) -> Opti
     })
 }
 
-pub(crate) fn decode_meteora_dllm_transaction(tx: &ConfirmedTransaction) -> Option<meteora_dllm_pb::Transaction> {
+pub(crate) fn decode_meteora_dlmm_transaction(tx: &ConfirmedTransaction) -> Option<meteora_dlmm_pb::Transaction> {
     let tx_meta = tx.meta.as_ref()?;
-    let instructions = tx.walk_instructions().filter_map(decode_meteora_dllm_instruction).collect::<Vec<_>>();
+    let instructions = tx.walk_instructions().filter_map(decode_meteora_dlmm_instruction).collect::<Vec<_>>();
     if instructions.is_empty() { return None; }
-    Some(meteora_dllm_pb::Transaction {
+    Some(meteora_dlmm_pb::Transaction {
         signature: tx.hash().to_vec(),
         fee_payer: get_fee_payer(tx).unwrap_or_default(),
         signers: get_signers(tx).unwrap_or_default(),
@@ -666,14 +666,14 @@ pub(crate) fn decode_meteora_daam_event_instruction(ix: InstructionView) -> Opti
     }
 }
 
-pub(crate) fn decode_meteora_dllm_instruction(ix: InstructionView) -> Option<meteora_dllm_pb::Instruction> {
+pub(crate) fn decode_meteora_dlmm_instruction(ix: InstructionView) -> Option<meteora_dlmm_pb::Instruction> {
     let program_id = ix.program_id().0;
-    if program_id != &meteora::dllm::PROGRAM_ID { return None; }
-    if let Ok(meteora::dllm::anchor_cpi_event::MeteoraDllmAnchorCpiEvent::Swap(event)) = meteora::dllm::anchor_cpi_event::unpack(ix.data()) {
-        return Some(meteora_dllm_pb::Instruction {
+    if program_id != &meteora::dlmm::PROGRAM_ID { return None; }
+    if let Ok(meteora::dlmm::anchor_cpi_event::MeteoraDlmmAnchorCpiEvent::Swap(event)) = meteora::dlmm::anchor_cpi_event::unpack(ix.data()) {
+        return Some(meteora_dlmm_pb::Instruction {
             program_id: program_id.to_vec(),
             stack_height: ix.stack_height(),
-            instruction: Some(meteora_dllm_pb::instruction::Instruction::SwapEvent(meteora_dllm_pb::SwapEvent {
+            instruction: Some(meteora_dlmm_pb::instruction::Instruction::SwapEvent(meteora_dlmm_pb::SwapEvent {
                 lb_pair: event.lb_pair.to_bytes().to_vec(),
                 from: event.from.to_bytes().to_vec(),
                 start_bin_id: event.start_bin_id,
@@ -688,14 +688,14 @@ pub(crate) fn decode_meteora_dllm_instruction(ix: InstructionView) -> Option<met
             })),
         });
     }
-    match meteora::dllm::instructions::unpack(ix.data()) {
-        Ok(meteora::dllm::instructions::MeteoraDllmInstruction::Swap(evt)) => {
-            let accounts = meteora::dllm::accounts::get_swap_accounts(&ix).ok()?;
-            Some(meteora_dllm_pb::Instruction {
+    match meteora::dlmm::instructions::unpack(ix.data()) {
+        Ok(meteora::dlmm::instructions::MeteoraDlmmInstruction::Swap(evt)) => {
+            let accounts = meteora::dlmm::accounts::get_swap_accounts(&ix).ok()?;
+            Some(meteora_dlmm_pb::Instruction {
                 program_id: program_id.to_vec(),
                 stack_height: ix.stack_height(),
-                instruction: Some(meteora_dllm_pb::instruction::Instruction::SwapInstruction(meteora_dllm_pb::SwapInstruction {
-                    accounts: Some(meteora_dllm_pb::SwapAccounts {
+                instruction: Some(meteora_dlmm_pb::instruction::Instruction::SwapInstruction(meteora_dlmm_pb::SwapInstruction {
+                    accounts: Some(meteora_dlmm_pb::SwapAccounts {
                         lb_pair: accounts.lb_pair.to_bytes().to_vec(),
                         bin_array_bitmap_extension: accounts.bin_array_bitmap_extension.map(|a| a.to_bytes().to_vec()).unwrap_or_default(),
                         reserve_x: accounts.reserve_x.to_bytes().to_vec(),

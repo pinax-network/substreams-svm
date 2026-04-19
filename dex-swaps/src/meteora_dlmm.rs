@@ -1,6 +1,6 @@
 use proto::pb::dex::swaps::v1 as pb;
 use substreams_solana::block_view::InstructionView;
-use substreams_solana_idls::meteora::dllm;
+use substreams_solana_idls::meteora::dlmm;
 
 pub(crate) struct PendingSwap {
     user: Vec<u8>,
@@ -17,7 +17,7 @@ struct SwapEvent {
 
 pub(crate) fn handle_instruction(pending_swap: &mut Option<PendingSwap>, instruction: &InstructionView) -> Option<pb::Swap> {
     let program_id = instruction.program_id().0;
-    if program_id != &dllm::PROGRAM_ID {
+    if program_id != &dlmm::PROGRAM_ID {
         return None;
     }
 
@@ -35,10 +35,10 @@ pub(crate) fn handle_instruction(pending_swap: &mut Option<PendingSwap>, instruc
     };
 
     Some(pb::Swap {
-        protocol: pb::Protocol::MeteoraDllm as i32,
-        program_id: dllm::PROGRAM_ID.to_vec(),
+        protocol: pb::Protocol::MeteoraDlmm as i32,
+        program_id: dlmm::PROGRAM_ID.to_vec(),
         stack_height: instruction.stack_height(),
-        amm: dllm::PROGRAM_ID.to_vec(),
+        amm: dlmm::PROGRAM_ID.to_vec(),
         amm_pool: swap.lb_pair,
         user: swap.user,
         input_mint,
@@ -49,9 +49,9 @@ pub(crate) fn handle_instruction(pending_swap: &mut Option<PendingSwap>, instruc
 }
 
 fn decode_swap_instruction(ix: &InstructionView) -> Option<PendingSwap> {
-    match dllm::instructions::unpack(ix.data()) {
-        Ok(dllm::instructions::MeteoraDllmInstruction::Swap(_)) => {
-            let accounts = dllm::accounts::get_swap_accounts(ix).ok()?;
+    match dlmm::instructions::unpack(ix.data()) {
+        Ok(dlmm::instructions::MeteoraDlmmInstruction::Swap(_)) => {
+            let accounts = dlmm::accounts::get_swap_accounts(ix).ok()?;
             Some(PendingSwap {
                 user: accounts.user.to_bytes().to_vec(),
                 lb_pair: accounts.lb_pair.to_bytes().to_vec(),
@@ -64,8 +64,8 @@ fn decode_swap_instruction(ix: &InstructionView) -> Option<PendingSwap> {
 }
 
 fn decode_swap_event(ix: &InstructionView) -> Option<SwapEvent> {
-    match dllm::anchor_cpi_event::unpack(ix.data()) {
-        Ok(dllm::anchor_cpi_event::MeteoraDllmAnchorCpiEvent::Swap(event)) => Some(SwapEvent {
+    match dlmm::anchor_cpi_event::unpack(ix.data()) {
+        Ok(dlmm::anchor_cpi_event::MeteoraDlmmAnchorCpiEvent::Swap(event)) => Some(SwapEvent {
             amount_in: event.amount_in,
             amount_out: event.amount_out,
             swap_for_y: event.swap_for_y,

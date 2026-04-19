@@ -39,11 +39,11 @@ pub mod meteora {
             // @@protoc_insertion_point(meteora.daam.v1)
         }
     }
-    pub mod dllm {
-        // @@protoc_insertion_point(attribute:meteora.dllm.v1)
+    pub mod dlmm {
+        // @@protoc_insertion_point(attribute:meteora.dlmm.v1)
         pub mod v1 {
-            include!("meteora.dllm.v1.rs");
-            // @@protoc_insertion_point(meteora.dllm.v1)
+            include!("meteora.dlmm.v1.rs");
+            // @@protoc_insertion_point(meteora.dlmm.v1)
         }
     }
 }

@@ -1034,7 +1034,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "meteora_dllm"
+name = "meteora_dlmm"
 version = "0.0.0"
 dependencies = [
  "common",
@@ -3060,7 +3060,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana-idls"
 version = "1.1.1"
-source = "git+https://github.com/pinax-network/substreams-solana-idls?tag=v1.1.1#96ec63f0ed2af684dd06c1b59047c8834c6a0381"
+source = "git+https://github.com/pinax-network/substreams-solana-idls?tag=v1.1.2#87d5278a25698b91d20fb64805ebffd38701649b"
 dependencies = [
  "base64 0.22.1",
  "borsh 1.5.7",

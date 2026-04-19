@@ -5,7 +5,7 @@ mod logs;
 mod boop;
 mod darklake;
 mod dumpfun;
-mod meteora_dllm;
+mod meteora_dlmm;
 mod orca_whirlpool;
 mod pumpfun;
 mod pumpfun_amm;
@@ -39,7 +39,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let mut dumpfun_state = dumpfun::State::new();
     let mut pumpfun_pending = None;
     let mut pumpfun_amm_pending = None;
-    let mut meteora_dllm_pending = None;
+    let mut meteora_dlmm_pending = None;
     let mut raydium_launchpad_pending = None;
     let mut raydium_amm_v4_state = raydium_amm_v4::State::new();
     let mut raydium_clmm_state = raydium_clmm::State::new();
@@ -57,7 +57,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         if let Some(swap) = pumpfun_amm::handle_instruction(&mut pumpfun_amm_pending, &instruction) {
             swaps.push(swap);
         }
-        if let Some(swap) = meteora_dllm::handle_instruction(&mut meteora_dllm_pending, &instruction) {
+        if let Some(swap) = meteora_dlmm::handle_instruction(&mut meteora_dlmm_pending, &instruction) {
             swaps.push(swap);
         }
         if let Some(swap) = raydium_launchpad::handle_instruction(&mut raydium_launchpad_pending, &instruction) {
