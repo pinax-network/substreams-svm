@@ -48,6 +48,13 @@ pub(crate) fn handle_instruction(pending_trade: &mut Option<PendingTrade>, instr
     })
 }
 
+pub(crate) fn extract_pool(ix: &InstructionView) -> Option<Vec<u8>> {
+    if ix.program_id().0 != &raydium::launchpad::PROGRAM_ID {
+        return None;
+    }
+    decode_trade_instruction(ix).map(|t| t.pool_state)
+}
+
 fn decode_trade_instruction(ix: &InstructionView) -> Option<PendingTrade> {
     let trade = match raydium::launchpad::instructions::unpack(ix.data()) {
         Ok(raydium::launchpad::instructions::RaydiumLaunchpadInstruction::BuyExactIn(_evt)) => {

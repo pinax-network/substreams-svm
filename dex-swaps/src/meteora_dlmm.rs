@@ -48,6 +48,13 @@ pub(crate) fn handle_instruction(pending_swap: &mut Option<PendingSwap>, instruc
     })
 }
 
+pub(crate) fn extract_pool(ix: &InstructionView) -> Option<Vec<u8>> {
+    if ix.program_id().0 != &dlmm::PROGRAM_ID {
+        return None;
+    }
+    decode_swap_instruction(ix).map(|s| s.lb_pair)
+}
+
 fn decode_swap_instruction(ix: &InstructionView) -> Option<PendingSwap> {
     match dlmm::instructions::unpack(ix.data()) {
         Ok(dlmm::instructions::MeteoraDlmmInstruction::Swap(_)) => {

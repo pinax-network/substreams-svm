@@ -73,6 +73,10 @@ struct LogSwap {
     amount_out: u64,
 }
 
+pub(crate) fn extract_pool(ix: &InstructionView) -> Option<Vec<u8>> {
+    decode_instruction(ix).map(|s| s.amm)
+}
+
 fn decode_instruction(ix: &InstructionView) -> Option<InstructionSwap> {
     let program_id = ix.program_id().0;
     if program_id != &raydium::amm::v4::PROGRAM_ID {

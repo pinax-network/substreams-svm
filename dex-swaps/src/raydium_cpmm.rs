@@ -67,6 +67,10 @@ struct LogSwap {
     output_mint: Option<Vec<u8>>,
 }
 
+pub(crate) fn extract_pool(ix: &InstructionView) -> Option<Vec<u8>> {
+    decode_cpmm_instruction(ix).map(|s| s.pool_state)
+}
+
 fn decode_cpmm_instruction(ix: &InstructionView) -> Option<InstructionSwap> {
     let program_id = ix.program_id().0;
     if program_id != &raydium::cpmm::PROGRAM_ID {
