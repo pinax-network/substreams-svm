@@ -8,6 +8,24 @@
 //!
 //! The dispatch list mirrors which AMMs have per-AMM pool decoders in this
 //! crate. Add new AMMs as their decoders land.
+//!
+//! ## Per-program latest-wins
+//!
+//! `Tracker` stores a single pool per program id; `observe` overwrites prior
+//! observations. This is correct for **Jupiter v6**: each Swap event self-CPI
+//! is emitted immediately after the routed AMM's inner CPI in DFS walk order,
+//! so by the time the v6 handler does `lookup` the latest pool for `event.amm`
+//! is the right one — even across multi-hop routes that revisit the same AMM
+//! program (e.g. Raydium → Orca → Raydium).
+//!
+//! **Jupiter v4** is more fragile: its Swap log lines are processed in a
+//! second pass over `log_messages` after the walk completes, so a direct
+//! same-program swap occurring later in the same tx than a v4-routed CPI can
+//! overwrite the entry the v4 row should reference, causing misattribution.
+//! Jupiter v4 traffic is two orders of magnitude smaller than v6 and rarely
+//! interleaves with same-AMM direct activity, so this gap is documented but
+//! not yet fixed; the proper fix is per-instruction history rather than a
+//! per-program latest-wins map.
 
 use std::collections::HashMap;
 
@@ -61,12 +79,18 @@ pub(crate) mod test_fixture {
         TransactionStatusMeta,
     };
 
+    /// Fee payer placeholder — `account_keys[0]` in real Solana txs is the
+    /// fee payer, and `common::solana::get_fee_payer` reads index 0. Mirror
+    /// that here so any future test that asserts on `user` doesn't get a
+    /// program id back.
+    pub(crate) const FEE_PAYER: [u8; 32] = [0xfe; 32];
+
     pub(crate) fn make_tx(program: [u8; 32], accounts: &[[u8; 32]], data: Vec<u8>) -> ConfirmedTransaction {
-        let mut keys: Vec<Vec<u8>> = vec![program.to_vec()];
+        let mut keys: Vec<Vec<u8>> = vec![FEE_PAYER.to_vec(), program.to_vec()];
         let mut acc_idx: Vec<u8> = Vec::new();
         for (i, a) in accounts.iter().enumerate() {
             keys.push(a.to_vec());
-            acc_idx.push((i + 1) as u8);
+            acc_idx.push((i + 2) as u8); // shift past fee_payer (0) and program (1)
         }
         ConfirmedTransaction {
             transaction: Some(Transaction {
@@ -80,7 +104,7 @@ pub(crate) mod test_fixture {
                     account_keys: keys,
                     recent_blockhash: vec![0u8; 32],
                     instructions: vec![CompiledInstruction {
-                        program_id_index: 0,
+                        program_id_index: 1,
                         accounts: acc_idx,
                         data,
                     }],
