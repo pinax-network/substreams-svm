@@ -48,9 +48,17 @@ pub(crate) fn handle_instruction(pending_trade: &mut Option<PendingTrade>, instr
     })
 }
 
+pub(crate) fn extract_pool(instruction: &InstructionView) -> Option<Vec<u8>> {
+    if instruction.program_id().0 != &pumpfun_amm::PROGRAM_ID {
+        return None;
+    }
+    decode_trade_instruction(instruction).map(|t| t.pool)
+}
+
 fn decode_trade_instruction(instruction: &InstructionView) -> Option<PendingTrade> {
     match pumpfun_amm::instructions::unpack(instruction.data()) {
         Ok(pumpfun_amm::instructions::PumpFunAmmInstruction::Buy(_))
+        | Ok(pumpfun_amm::instructions::PumpFunAmmInstruction::BuyExactQuoteIn(_))
         | Ok(pumpfun_amm::instructions::PumpFunAmmInstruction::Sell(_)) => Some(PendingTrade {
             pool: instruction.accounts().get(0)?.0.to_vec(),
             base_mint: instruction.accounts().get(4)?.0.to_vec(),

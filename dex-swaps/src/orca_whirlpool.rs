@@ -72,6 +72,10 @@ struct LogSwap {
     output_amount: u64,
 }
 
+pub(crate) fn extract_pool(ix: &InstructionView) -> Option<Vec<u8>> {
+    decode_instruction(ix).map(|s| s.whirlpool)
+}
+
 fn decode_instruction(ix: &InstructionView) -> Option<InstructionSwap> {
     let program_id = ix.program_id().0;
     if program_id != &orca::whirlpool::PROGRAM_ID {

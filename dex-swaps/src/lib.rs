@@ -2,6 +2,7 @@
 mod jupiter_v4;
 mod jupiter_v6;
 mod logs;
+mod routed_pool;
 mod boop;
 mod darklake;
 mod dumpfun;
@@ -45,9 +46,11 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let mut raydium_clmm_state = raydium_clmm::State::new();
     let mut raydium_cpmm_state = raydium_cpmm::State::new();
     let mut orca_whirlpool_state = orca_whirlpool::State::new();
+    let mut routed_pools = routed_pool::Tracker::new();
 
     for instruction in tx.walk_instructions() {
-        if let Some(swap) = jupiter_v6::decode_instruction(&tx, &instruction) {
+        routed_pools.observe(&instruction);
+        if let Some(swap) = jupiter_v6::decode_instruction(&tx, &instruction, &routed_pools) {
             swaps.push(swap);
         }
         darklake_state.handle_instruction(&instruction);
@@ -72,7 +75,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
 
     let mut jupiter_v4_state = jupiter_v4::State::new();
     for log_message in tx_meta.log_messages.iter() {
-        if let Some(swap) = jupiter_v4_state.handle_log(&tx, log_message) {
+        if let Some(swap) = jupiter_v4_state.handle_log(&tx, log_message, &routed_pools) {
             swaps.push(swap);
         }
         if let Some(swap) = boop_state.handle_log(log_message) {
