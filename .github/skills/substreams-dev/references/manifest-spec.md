@@ -14,7 +14,7 @@ package:
   image: ../../image.png
 
 imports:
-  solana_common: https://github.com/streamingfast/substreams-foundational-modules/releases/download/substreams-v0.3.3/solana-common-v0.3.3.spkg
+  solana_common: ../../../spkg/solana-common-v0.4.0.spkg
 
 binaries:
   default:
@@ -89,7 +89,7 @@ Most SVM modules import `solana-common` for vote-filtered blocks:
 
 ```yaml
 imports:
-  solana_common: https://github.com/streamingfast/substreams-foundational-modules/releases/download/substreams-v0.3.3/solana-common-v0.3.3.spkg
+  solana_common: ../../../spkg/solana-common-v0.4.0.spkg
 ```
 
 ### Input Source
