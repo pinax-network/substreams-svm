@@ -1,7 +1,8 @@
 use common::solana::get_fee_payer;
 use proto::pb::dex::swaps::v1 as pb;
-use substreams_solana::{block_view::InstructionView, pb::sf::solana::r#type::v1::ConfirmedTransaction};
+use substreams_solana::{base58, block_view::InstructionView, pb::sf::solana::r#type::v1::ConfirmedTransaction};
 use substreams_solana_idls::jupiter;
+use substreams::log;
 
 use crate::routed_pool::Tracker;
 
@@ -28,6 +29,12 @@ pub(crate) fn decode_instruction(
                 .lookup(&amm_program)
                 .cloned()
                 .unwrap_or_default();
+
+            if amm_pool.len() > 0 {
+                log::info!("V6 ✅ {}", base58::encode(amm_program));
+            } else {
+                log::info!("V6 ⚠️  {} (unknown pool)", base58::encode(amm_program));
+            }
             Some(pb::Swap {
                 program_id: jupiter::v6::PROGRAM_ID.to_vec(),
                 protocol: pb::Protocol::JupiterV6 as i32,

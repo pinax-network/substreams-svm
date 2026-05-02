@@ -1,5 +1,7 @@
 use common::solana::{get_fee_payer, parse_program_data};
 use proto::pb::dex::swaps::v1 as pb;
+use substreams::log;
+use substreams_solana::base58;
 use substreams_solana::pb::sf::solana::r#type::v1::ConfirmedTransaction;
 use substreams_solana_idls::jupiter;
 
@@ -19,16 +21,9 @@ impl State {
         }
     }
 
-    pub(crate) fn handle_log(
-        &mut self,
-        tx: &ConfirmedTransaction,
-        log_message: &str,
-        routed_pools: &Tracker,
-    ) -> Option<pb::Swap> {
+    pub(crate) fn handle_log(&mut self, tx: &ConfirmedTransaction, log_message: &str, routed_pools: &Tracker) -> Option<pb::Swap> {
         match scoped_program_log(log_message, &jupiter::v4::PROGRAM_ID.to_vec(), &mut self.is_invoked)? {
-            ProgramLog::Enter {
-                invoke_depth: Some(height),
-            } => {
+            ProgramLog::Enter { invoke_depth: Some(height) } => {
                 self.current_stack_height = height - 1;
                 return None;
             }
@@ -37,10 +32,12 @@ impl State {
                 let data = parse_program_data(log_message)?;
                 if let Ok(jupiter::v4::events::JupiterV4Event::Swap(event)) = jupiter::v4::events::unpack(data.as_slice()) {
                     let amm_program = event.amm.to_bytes();
-                    let amm_pool = routed_pools
-                        .lookup(&amm_program)
-                        .cloned()
-                        .unwrap_or_default();
+                    let amm_pool = routed_pools.lookup(&amm_program).cloned().unwrap_or_default();
+                    if amm_pool.len() > 0 {
+                        log::info!("V4 ✅ {}", base58::encode(amm_program));
+                    } else {
+                        log::info!("V4 ⚠️  {} (unknown pool)", base58::encode(amm_program));
+                    }
                     return Some(pb::Swap {
                         program_id: jupiter::v4::PROGRAM_ID.to_vec(),
                         protocol: pb::Protocol::JupiterV4 as i32,
