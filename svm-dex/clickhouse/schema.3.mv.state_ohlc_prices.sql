@@ -120,7 +120,7 @@ SELECT
     max(s.block_num) AS max_block_num,
 
     -- dimensions --
-    program_id, amm, amm_pool, mint0, mint1,
+    protocol, program_id, amm, amm_pool, mint0, mint1,
 
     /* OHLC */
     argMinState(price, toUInt64(block_num))                 AS open0,
@@ -134,10 +134,10 @@ SELECT
     sum(nf1)                AS net_flow1,
 
     -- universal --
+    count()                 AS transactions,
     uniqState(signer)       AS uniq_signer,
     uniqState(fee_payer)    AS uniq_fee_payer,
-    uniqState(user)         AS uniq_user,
-    count()                 AS transactions
+    uniqState(user)         AS uniq_user
 FROM swaps s
 GROUP BY
     -- bar interval
