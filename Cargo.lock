@@ -1527,17 +1527,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pumpswap"
-version = "0.0.0"
-dependencies = [
- "common",
- "proto",
- "substreams 0.7.3",
- "substreams-solana",
- "substreams-solana-idls",
-]
-
-[[package]]
 name = "qstring"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
