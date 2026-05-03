@@ -19,7 +19,11 @@ ALTER TABLE swaps
         'raydium_amm_v4' = 11,
         'raydium_clmm' = 12,
         'raydium_cpmm' = 13,
-        'raydium_launchpad' = 14
+        'raydium_launchpad' = 14,
+        'meteora_amm' = 15,
+        'byreal' = 16,
+        'moonshot' = 17,
+        'pancakeswap' = 18
     ) COMMENT 'Protocol',
     ADD COLUMN IF NOT EXISTS amm                         String COMMENT 'AMM protocol (Raydium Liquidity Pool V4)',
     ADD COLUMN IF NOT EXISTS amm_pool                    String COMMENT 'AMM market (Raydium "WSOL-USDT" Market)',

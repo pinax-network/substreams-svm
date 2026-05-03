@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: dex_swaps
-  version: v0.4.2
+  version: v0.4.3
   url: https://github.com/pinax-network/substreams-svm
   description: Normalized swap events across Solana DEX protocols.
   image: ../image.png
@@ -24,7 +24,6 @@ modules:
   - name: map_events
     kind: map
     inputs:
-      # - source: sf.solana.type.v1.Block
       - map: solana_common:blocks_without_votes
     output:
       type: proto:dex.swaps.v1.Events

@@ -4,16 +4,22 @@ mod jupiter_v6;
 mod logs;
 mod routed_pool;
 mod boop;
+mod byreal;
 mod darklake;
 mod dumpfun;
+mod meteora_amm;
+mod meteora_daam;
 mod meteora_dlmm;
+mod moonshot;
 mod orca_whirlpool;
+mod pancakeswap;
 mod pumpfun;
 mod pumpfun_amm;
 mod raydium_amm_v4;
 mod raydium_clmm;
 mod raydium_cpmm;
 mod raydium_launchpad;
+mod token_mints;
 
 use common::solana::{get_fee_payer, get_signers};
 use proto::pb::dex::swaps::v1 as pb;
@@ -36,23 +42,30 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let tx_meta = tx.meta.as_ref()?;
     let mut swaps = Vec::new();
     let mut boop_state = boop::State::new();
+    let mut byreal_state = byreal::State::new();
     let mut darklake_state = darklake::State::new();
     let mut dumpfun_state = dumpfun::State::new();
     let mut pumpfun_pending = None;
     let mut pumpfun_amm_pending = None;
+    let mut meteora_amm_state = meteora_amm::State::new();
+    let mut meteora_daam_pending = None;
     let mut meteora_dlmm_pending = None;
+    let mut moonshot_state = moonshot::State::new();
+    let mut pancakeswap_state = pancakeswap::State::new();
     let mut raydium_launchpad_pending = None;
     let mut raydium_amm_v4_state = raydium_amm_v4::State::new();
     let mut raydium_clmm_state = raydium_clmm::State::new();
     let mut raydium_cpmm_state = raydium_cpmm::State::new();
     let mut orca_whirlpool_state = orca_whirlpool::State::new();
     let mut routed_pools = routed_pool::Tracker::new();
+    let token_mints = token_mints::TokenMintLookup::new(&tx, tx_meta);
 
     for instruction in tx.walk_instructions() {
         routed_pools.observe(&instruction);
         if let Some(swap) = jupiter_v6::decode_instruction(&tx, &instruction, &routed_pools) {
             swaps.push(swap);
         }
+        byreal_state.handle_instruction(&instruction, &token_mints);
         darklake_state.handle_instruction(&instruction);
         if let Some(swap) = pumpfun::handle_instruction(&mut pumpfun_pending, &instruction) {
             swaps.push(swap);
@@ -60,9 +73,14 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         if let Some(swap) = pumpfun_amm::handle_instruction(&mut pumpfun_amm_pending, &instruction) {
             swaps.push(swap);
         }
+        meteora_amm_state.handle_instruction(&instruction, &token_mints);
+        if let Some(swap) = meteora_daam::handle_instruction(&mut meteora_daam_pending, &instruction) {
+            swaps.push(swap);
+        }
         if let Some(swap) = meteora_dlmm::handle_instruction(&mut meteora_dlmm_pending, &instruction) {
             swaps.push(swap);
         }
+        pancakeswap_state.handle_instruction(&instruction, &token_mints);
         if let Some(swap) = raydium_launchpad::handle_instruction(&mut raydium_launchpad_pending, &instruction) {
             swaps.push(swap);
         }
@@ -81,10 +99,22 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         if let Some(swap) = boop_state.handle_log(log_message) {
             swaps.push(swap);
         }
+        if let Some(swap) = byreal_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
         if let Some(swap) = darklake_state.handle_log(log_message) {
             swaps.push(swap);
         }
         if let Some(swap) = dumpfun_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = meteora_amm_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = moonshot_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = pancakeswap_state.handle_log(log_message) {
             swaps.push(swap);
         }
         if let Some(swap) = raydium_amm_v4_state.handle_log(log_message) {

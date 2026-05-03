@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: svm_dex
-  version: v0.4.2
+  version: v0.4.3
   url: https://github.com/pinax-network/substreams-svm
   description: Database-ready normalized DEX swaps for Solana.
   image: ../image.png
@@ -11,7 +11,7 @@ imports:
   database_changes: ../spkg/substreams-sink-database-changes-v4.0.0.spkg
   sql: ../spkg/substreams-sink-sql-protodefs-v1.0.7.spkg
 
-  dex_swaps: ../spkg/dex-swaps-v0.4.2.spkg
+  dex_swaps: ../spkg/dex-swaps-v0.4.3.spkg
 
 binaries:
   default:

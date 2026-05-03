@@ -32,7 +32,6 @@ members = [
   "metaplex",
   "dex/bonk-swap",
   "dex/orca/whirlpool",
-  "dex/pumpswap",
   "dex/moonshot",
   "dex/pancakeswap",
   "dex/lifinity",

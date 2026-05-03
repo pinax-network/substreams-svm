@@ -64,6 +64,10 @@ pub enum Protocol {
     RaydiumClmm = 12,
     RaydiumCpmm = 13,
     RaydiumLaunchpad = 14,
+    MeteoraAmm = 15,
+    Byreal = 16,
+    Moonshot = 17,
+    Pancakeswap = 18,
 }
 impl Protocol {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -87,6 +91,10 @@ impl Protocol {
             Protocol::RaydiumClmm => "PROTOCOL_RAYDIUM_CLMM",
             Protocol::RaydiumCpmm => "PROTOCOL_RAYDIUM_CPMM",
             Protocol::RaydiumLaunchpad => "PROTOCOL_RAYDIUM_LAUNCHPAD",
+            Protocol::MeteoraAmm => "PROTOCOL_METEORA_AMM",
+            Protocol::Byreal => "PROTOCOL_BYREAL",
+            Protocol::Moonshot => "PROTOCOL_MOONSHOT",
+            Protocol::Pancakeswap => "PROTOCOL_PANCAKESWAP",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -107,6 +115,10 @@ impl Protocol {
             "PROTOCOL_RAYDIUM_CLMM" => Some(Self::RaydiumClmm),
             "PROTOCOL_RAYDIUM_CPMM" => Some(Self::RaydiumCpmm),
             "PROTOCOL_RAYDIUM_LAUNCHPAD" => Some(Self::RaydiumLaunchpad),
+            "PROTOCOL_METEORA_AMM" => Some(Self::MeteoraAmm),
+            "PROTOCOL_BYREAL" => Some(Self::Byreal),
+            "PROTOCOL_MOONSHOT" => Some(Self::Moonshot),
+            "PROTOCOL_PANCAKESWAP" => Some(Self::Pancakeswap),
             _ => None,
         }
     }
