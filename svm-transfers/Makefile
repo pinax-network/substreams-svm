@@ -13,6 +13,10 @@ build:
 pack: build
 	substreams pack -o ../spkg/{spkgDefaultName}
 
+.PHONY: noop
+noop: build
+	substreams-sink-noop $(ENDPOINT) substreams.yaml db_out -H "X-Sf-Substreams-Parallel-Jobs: $(PARALLEL_JOBS)" :
+
 .PHONY: gui
 gui: build
 	substreams gui -e $(ENDPOINT) substreams.yaml db_out -s $(START_BLOCK) -t $(STOP_BLOCK) --network solana
