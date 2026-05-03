@@ -26,7 +26,11 @@ CREATE TABLE IF NOT EXISTS state_ohlc_prices (
         'raydium_amm_v4' = 11,
         'raydium_clmm' = 12,
         'raydium_cpmm' = 13,
-        'raydium_launchpad' = 14
+        'raydium_launchpad' = 14,
+        'meteora_amm' = 15,
+        'byreal' = 16,
+        'moonshot' = 17,
+        'pancakeswap' = 18
     ) COMMENT 'Protocol',
     program_id              LowCardinality(String),
     amm                     LowCardinality(String),
