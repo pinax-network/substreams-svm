@@ -55,11 +55,15 @@ impl Tracker {
 }
 
 fn dispatch(ix: &InstructionView) -> Option<Vec<u8>> {
-    crate::pumpfun_amm::extract_pool(ix)
+    crate::byreal::extract_pool(ix)
+        .or_else(|| crate::pancakeswap::extract_pool(ix))
+        .or_else(|| crate::pumpfun_amm::extract_pool(ix))
         .or_else(|| crate::raydium_amm_v4::extract_pool(ix))
         .or_else(|| crate::raydium_clmm::extract_pool(ix))
         .or_else(|| crate::raydium_cpmm::extract_pool(ix))
         .or_else(|| crate::orca_whirlpool::extract_pool(ix))
+        .or_else(|| crate::meteora_amm::extract_pool(ix))
+        .or_else(|| crate::meteora_daam::extract_pool(ix))
         .or_else(|| crate::meteora_dlmm::extract_pool(ix))
         .or_else(|| crate::pumpfun::extract_pool(ix))
         .or_else(|| crate::raydium_launchpad::extract_pool(ix))
@@ -120,7 +124,7 @@ pub(crate) mod test_fixture {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use substreams_solana_idls::{pumpfun, raydium};
+    use substreams_solana_idls::{byreal, meteora, pancakeswap, pumpfun, raydium};
 
     /// PumpSwap (`pumpfun::amm`) Buy discriminator. Mirrors the private
     /// constant in `substreams_solana_idls::pumpfun::amm::instructions`.
@@ -216,7 +220,6 @@ mod tests {
     fn tracker_observe_handles_meteora_dlmm() {
         // Meteora DLMM Swap: lb_pair at accounts[0] (per SwapAccounts IDL).
         const METEORA_DLMM_SWAP: [u8; 8] = [248, 198, 158, 145, 225, 117, 135, 200];
-        use substreams_solana_idls::meteora;
         let pool = [22u8; 32];
         let accounts = accounts_with_pool(pool, 0, 16);
         let mut data = METEORA_DLMM_SWAP.to_vec();
@@ -228,6 +231,78 @@ mod tests {
             tracker.observe(&ix);
         }
         assert_eq!(tracker.lookup(&meteora::dlmm::PROGRAM_ID), Some(&pool.to_vec()));
+    }
+
+    #[test]
+    fn tracker_observe_handles_meteora_amm() {
+        // Meteora AMM Swap: pool at accounts[0].
+        const METEORA_AMM_SWAP: [u8; 8] = [248, 198, 158, 145, 225, 117, 135, 200];
+        let pool = [29u8; 32];
+        let accounts = accounts_with_pool(pool, 0, 15);
+        let mut data = METEORA_AMM_SWAP.to_vec();
+        data.extend_from_slice(&100_000u64.to_le_bytes()); // in_amount
+        data.extend_from_slice(&50_000u64.to_le_bytes());  // minimum_out_amount
+        let tx = test_fixture::make_tx(meteora::amm::PROGRAM_ID, &accounts, data);
+        let mut tracker = Tracker::new();
+        for ix in tx.walk_instructions() {
+            tracker.observe(&ix);
+        }
+        assert_eq!(tracker.lookup(&meteora::amm::PROGRAM_ID), Some(&pool.to_vec()));
+    }
+
+    #[test]
+    fn tracker_observe_handles_meteora_daam() {
+        // Meteora DAAM Swap: pool at accounts[1].
+        const METEORA_DAAM_SWAP: [u8; 8] = [248, 198, 158, 145, 225, 117, 135, 200];
+        let pool = [30u8; 32];
+        let accounts = accounts_with_pool(pool, 1, 14);
+        let mut data = METEORA_DAAM_SWAP.to_vec();
+        data.extend_from_slice(&100_000u64.to_le_bytes()); // amount_in
+        data.extend_from_slice(&50_000u64.to_le_bytes());  // minimum_amount_out
+        let tx = test_fixture::make_tx(meteora::daam::PROGRAM_ID, &accounts, data);
+        let mut tracker = Tracker::new();
+        for ix in tx.walk_instructions() {
+            tracker.observe(&ix);
+        }
+        assert_eq!(tracker.lookup(&meteora::daam::PROGRAM_ID), Some(&pool.to_vec()));
+    }
+
+    #[test]
+    fn tracker_observe_handles_byreal_clmm() {
+        // ByReal CLMM SwapV2: pool_state at accounts[2].
+        const BYREAL_SWAP_V2: [u8; 8] = [43, 4, 237, 11, 26, 201, 30, 98];
+        let pool = [31u8; 32];
+        let accounts = accounts_with_pool(pool, 2, 13);
+        let mut data = BYREAL_SWAP_V2.to_vec();
+        data.extend_from_slice(&100_000u64.to_le_bytes()); // amount
+        data.extend_from_slice(&50_000u64.to_le_bytes());  // other_amount_threshold
+        data.extend_from_slice(&0u128.to_le_bytes());      // sqrt_price_limit_x64
+        data.push(1);                                      // is_base_input
+        let tx = test_fixture::make_tx(byreal::clmm::PROGRAM_ID, &accounts, data);
+        let mut tracker = Tracker::new();
+        for ix in tx.walk_instructions() {
+            tracker.observe(&ix);
+        }
+        assert_eq!(tracker.lookup(&byreal::clmm::PROGRAM_ID), Some(&pool.to_vec()));
+    }
+
+    #[test]
+    fn tracker_observe_handles_pancakeswap() {
+        // PancakeSwap Swap: pool_state at accounts[2].
+        const PANCAKESWAP_SWAP: [u8; 8] = [248, 198, 158, 145, 225, 117, 135, 200];
+        let pool = [32u8; 32];
+        let accounts = accounts_with_pool(pool, 2, 10);
+        let mut data = PANCAKESWAP_SWAP.to_vec();
+        data.extend_from_slice(&100_000u64.to_le_bytes()); // amount
+        data.extend_from_slice(&50_000u64.to_le_bytes());  // other_amount_threshold
+        data.extend_from_slice(&0u128.to_le_bytes());      // sqrt_price_limit_x64
+        data.push(1);                                      // is_base_input
+        let tx = test_fixture::make_tx(pancakeswap::PROGRAM_ID, &accounts, data);
+        let mut tracker = Tracker::new();
+        for ix in tx.walk_instructions() {
+            tracker.observe(&ix);
+        }
+        assert_eq!(tracker.lookup(&pancakeswap::PROGRAM_ID), Some(&pool.to_vec()));
     }
 
     #[test]
