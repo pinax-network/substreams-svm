@@ -19,6 +19,7 @@ fn protocol_slug(protocol: i32) -> &'static str {
         pb::Protocol::Moonshot => "moonshot",
         pb::Protocol::OrcaWhirlpool => "orca_whirlpool",
         pb::Protocol::Pancakeswap => "pancakeswap",
+        pb::Protocol::SplTokenSwap => "spl_token_swap",
         pb::Protocol::Pumpfun => "pumpfun",
         pb::Protocol::PumpfunAmm => "pumpfun_amm",
         pb::Protocol::RaydiumAmmV4 => "raydium_amm_v4",

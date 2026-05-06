@@ -1,8 +1,8 @@
 use common::solana::get_fee_payer;
 use proto::pb::dex::swaps::v1 as pb;
+use substreams::log;
 use substreams_solana::{base58, block_view::InstructionView, pb::sf::solana::r#type::v1::ConfirmedTransaction};
 use substreams_solana_idls::jupiter;
-use substreams::log;
 
 use crate::routed_pool::Tracker;
 
@@ -12,11 +12,7 @@ use crate::routed_pool::Tracker;
 #[cfg(test)]
 const SWAP_DISCRIMINATOR: [u8; 8] = [228, 69, 165, 46, 81, 203, 154, 29];
 
-pub(crate) fn decode_instruction(
-    tx: &ConfirmedTransaction,
-    instruction: &InstructionView,
-    routed_pools: &Tracker,
-) -> Option<pb::Swap> {
+pub(crate) fn decode_instruction(tx: &ConfirmedTransaction, instruction: &InstructionView, routed_pools: &Tracker) -> Option<pb::Swap> {
     let program_id = instruction.program_id().0;
     if program_id != &jupiter::v6::PROGRAM_ID {
         return None;
@@ -25,10 +21,7 @@ pub(crate) fn decode_instruction(
     match jupiter::v6::events::unpack(instruction.data()) {
         Ok(jupiter::v6::events::JupiterV6Event::Swap(event)) => {
             let amm_program = event.amm.to_bytes();
-            let amm_pool = routed_pools
-                .lookup(&amm_program)
-                .cloned()
-                .unwrap_or_default();
+            let amm_pool = routed_pools.lookup(&amm_program).cloned().unwrap_or_default();
 
             if amm_pool.len() > 0 {
                 log::info!("V6 ✅ {}", base58::encode(amm_program));

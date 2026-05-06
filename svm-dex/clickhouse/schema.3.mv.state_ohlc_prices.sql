@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS state_ohlc_prices (
         'meteora_amm' = 15,
         'byreal' = 16,
         'moonshot' = 17,
-        'pancakeswap' = 18
+        'pancakeswap' = 18,
+        'spl_token_swap' = 19
     ) COMMENT 'Protocol',
     program_id              LowCardinality(String),
     amm                     LowCardinality(String),
