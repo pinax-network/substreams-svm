@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS state_pools_aggregating_by_pool (
         'byreal' = 16,
         'moonshot' = 17,
         'pancakeswap' = 18,
-        'spl_token_swap' = 19
+        'spl_token_swap' = 19,
+        'okx_dex' = 20
     ) COMMENT 'Protocol',
     program_id              LowCardinality(String),
     amm                     LowCardinality(String),

@@ -69,6 +69,7 @@ pub enum Protocol {
     Moonshot = 17,
     Pancakeswap = 18,
     SplTokenSwap = 19,
+    OkxDex = 20,
 }
 impl Protocol {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -97,6 +98,7 @@ impl Protocol {
             Protocol::Moonshot => "PROTOCOL_MOONSHOT",
             Protocol::Pancakeswap => "PROTOCOL_PANCAKESWAP",
             Protocol::SplTokenSwap => "PROTOCOL_SPL_TOKEN_SWAP",
+            Protocol::OkxDex => "PROTOCOL_OKX_DEX",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -122,6 +124,7 @@ impl Protocol {
             "PROTOCOL_MOONSHOT" => Some(Self::Moonshot),
             "PROTOCOL_PANCAKESWAP" => Some(Self::Pancakeswap),
             "PROTOCOL_SPL_TOKEN_SWAP" => Some(Self::SplTokenSwap),
+            "PROTOCOL_OKX_DEX" => Some(Self::OkxDex),
             _ => None,
         }
     }

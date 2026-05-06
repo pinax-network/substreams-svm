@@ -39,6 +39,7 @@ Current coverage:
 - Raydium Launchpad
 - Meteora DAAM
 - Meteora DLMM
+- OKX DEX V2
 - SPL Token Swap-compatible programs
 
 Currently excluded:

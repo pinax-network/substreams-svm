@@ -17,6 +17,7 @@ fn protocol_slug(protocol: i32) -> &'static str {
         pb::Protocol::MeteoraDaam => "meteora_daam",
         pb::Protocol::MeteoraDlmm => "meteora_dlmm",
         pb::Protocol::Moonshot => "moonshot",
+        pb::Protocol::OkxDex => "okx_dex",
         pb::Protocol::OrcaWhirlpool => "orca_whirlpool",
         pb::Protocol::Pancakeswap => "pancakeswap",
         pb::Protocol::SplTokenSwap => "spl_token_swap",
@@ -47,7 +48,6 @@ pub fn db_out(mut clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Er
                 .set("compute_units_consumed", transaction.compute_units_consumed)
                 .set("program_id", base58::encode(&swap.program_id))
                 .set("stack_height", swap.stack_height)
-
                 // Swap
                 .set("protocol", protocol_slug(swap.protocol))
                 .set("amm", base58::encode(&swap.amm))

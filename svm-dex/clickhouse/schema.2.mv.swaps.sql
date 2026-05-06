@@ -24,7 +24,8 @@ ALTER TABLE swaps
         'byreal' = 16,
         'moonshot' = 17,
         'pancakeswap' = 18,
-        'spl_token_swap' = 19
+        'spl_token_swap' = 19,
+        'okx_dex' = 20
     ) COMMENT 'Protocol',
     ADD COLUMN IF NOT EXISTS amm                         String COMMENT 'AMM protocol (Raydium Liquidity Pool V4)',
     ADD COLUMN IF NOT EXISTS amm_pool                    String COMMENT 'AMM market (Raydium "WSOL-USDT" Market)',
