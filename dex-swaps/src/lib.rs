@@ -1,12 +1,11 @@
 // mod decode;
-mod jupiter_v4;
-mod jupiter_v6;
-mod logs;
-mod routed_pool;
 mod boop;
 mod byreal;
 mod darklake;
 mod dumpfun;
+mod jupiter_v4;
+mod jupiter_v6;
+mod logs;
 mod meteora_amm;
 mod meteora_daam;
 mod meteora_dlmm;
@@ -19,17 +18,20 @@ mod raydium_amm_v4;
 mod raydium_clmm;
 mod raydium_cpmm;
 mod raydium_launchpad;
+mod routed_pool;
 mod spl_token_swap;
 mod token_mints;
 
 use common::solana::{get_fee_payer, get_signers};
 use proto::pb::dex::swaps::v1 as pb;
-use substreams::errors::Error;
-use substreams_solana::{pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction}};
+use substreams::{errors::Error, log};
+use substreams_solana::{
+    base58,
+    pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction},
+};
 
 pub(crate) const SOL_MINT: [u8; 32] = [
-    6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220,
-    26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1,
+    6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220, 26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1,
 ]; // So11111111111111111111111111111111111111111
 
 #[substreams::handlers::map]
@@ -92,6 +94,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         orca_whirlpool_state.handle_instruction(&instruction);
 
         if let Some(swap) = spl_token_swap::handle_instruction(&instruction, &token_mints) {
+            log::info!("SPL Token Swap 🚨 {}", base58::encode(&swap.program_id));
             swaps.push(swap);
         }
     }
