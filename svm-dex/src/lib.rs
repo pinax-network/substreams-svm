@@ -48,6 +48,7 @@ pub fn db_out(mut clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Er
                 .set("compute_units_consumed", transaction.compute_units_consumed)
                 .set("program_id", base58::encode(&swap.program_id))
                 .set("stack_height", swap.stack_height)
+
                 // Swap
                 .set("protocol", protocol_slug(swap.protocol))
                 .set("amm", base58::encode(&swap.amm))
