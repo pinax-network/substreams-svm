@@ -126,6 +126,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
             swaps.push(swap);
         }
         if let Some(swap) = okx_state.handle_log(log_message) {
+            log::info!("OKX Swap 🟢 {} {}", base58::encode(&swap.program_id), base58::encode(&swap.amm_pool));
             swaps.push(swap);
         }
         if let Some(swap) = pancakeswap_state.handle_log(log_message) {
