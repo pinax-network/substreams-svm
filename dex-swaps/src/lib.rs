@@ -86,7 +86,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         }
 
         raydium_amm_v4_state.handle_instruction(&instruction);
-        raydium_clmm_state.handle_instruction(&instruction);
+        raydium_clmm_state.handle_instruction(&instruction, &token_mints);
         raydium_cpmm_state.handle_instruction(&instruction);
         orca_whirlpool_state.handle_instruction(&instruction);
     }
