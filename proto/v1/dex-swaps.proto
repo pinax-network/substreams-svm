@@ -22,6 +22,7 @@ enum Protocol {
   PROTOCOL_BYREAL = 16;
   PROTOCOL_MOONSHOT = 17;
   PROTOCOL_PANCAKESWAP = 18;
+  PROTOCOL_SPL_TOKEN_SWAP = 19;
 }
 
 message Events {

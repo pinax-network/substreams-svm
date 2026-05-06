@@ -19,6 +19,7 @@ mod raydium_amm_v4;
 mod raydium_clmm;
 mod raydium_cpmm;
 mod raydium_launchpad;
+mod spl_token_swap;
 mod token_mints;
 
 use common::solana::{get_fee_payer, get_signers};
@@ -89,6 +90,10 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         raydium_clmm_state.handle_instruction(&instruction);
         raydium_cpmm_state.handle_instruction(&instruction);
         orca_whirlpool_state.handle_instruction(&instruction);
+
+        if let Some(swap) = spl_token_swap::handle_instruction(&instruction, &token_mints) {
+            swaps.push(swap);
+        }
     }
 
     let mut jupiter_v4_state = jupiter_v4::State::new();
