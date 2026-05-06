@@ -17,6 +17,7 @@ fn protocol_slug(protocol: i32) -> &'static str {
         pb::Protocol::MeteoraDaam => "meteora_daam",
         pb::Protocol::MeteoraDlmm => "meteora_dlmm",
         pb::Protocol::Moonshot => "moonshot",
+        pb::Protocol::OkxDex => "okx_dex",
         pb::Protocol::OrcaWhirlpool => "orca_whirlpool",
         pb::Protocol::Pancakeswap => "pancakeswap",
         pb::Protocol::SplTokenSwap => "spl_token_swap",

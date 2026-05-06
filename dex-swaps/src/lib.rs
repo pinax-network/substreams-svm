@@ -10,6 +10,7 @@ mod meteora_amm;
 mod meteora_daam;
 mod meteora_dlmm;
 mod moonshot;
+mod okx;
 mod orca_whirlpool;
 mod pancakeswap;
 mod pumpfun;
@@ -54,6 +55,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let mut meteora_daam_pending = None;
     let mut meteora_dlmm_pending = None;
     let mut moonshot_state = moonshot::State::new();
+    let mut okx_state = okx::State::new();
     let mut pancakeswap_state = pancakeswap::State::new();
     let mut raydium_launchpad_pending = None;
     let mut raydium_amm_v4_state = raydium_amm_v4::State::new();
@@ -83,6 +85,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         if let Some(swap) = meteora_dlmm::handle_instruction(&mut meteora_dlmm_pending, &instruction) {
             swaps.push(swap);
         }
+        okx_state.handle_instruction(&instruction);
         pancakeswap_state.handle_instruction(&instruction, &token_mints);
         if let Some(swap) = raydium_launchpad::handle_instruction(&mut raydium_launchpad_pending, &instruction) {
             swaps.push(swap);
@@ -120,6 +123,10 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
             swaps.push(swap);
         }
         if let Some(swap) = moonshot_state.handle_log(log_message) {
+            swaps.push(swap);
+        }
+        if let Some(swap) = okx_state.handle_log(log_message) {
+            log::info!("OKX Swap 🟢 {} {}", base58::encode(&swap.program_id), base58::encode(&swap.amm_pool));
             swaps.push(swap);
         }
         if let Some(swap) = pancakeswap_state.handle_log(log_message) {
