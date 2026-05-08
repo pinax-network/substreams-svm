@@ -229,6 +229,9 @@ mod tests {
     /// 18 accounts in post-fork IDL order.
     fn make_post_fork_accounts() -> ([[u8; 32]; 18], usize, usize) {
         // (accounts, pool_coin_account_keys_index, pool_pc_account_keys_index)
+        // Comments below mirror the field names in `SwapBaseAccounts`; the
+        // `uer_*` spelling is a typo carried over verbatim from the canonical
+        // Raydium AMM v4 IDL (`uerSourceTokenAccount` / `uerDestinationTokenAccount`).
         let accs: [[u8; 32]; 18] = [
             [0x00; 32], // token_program
             [0x01; 32], // amm
@@ -245,8 +248,8 @@ mod tests {
             [0x0c; 32], // serum_coin_vault_account
             [0x0d; 32], // serum_pc_vault_account
             [0x0e; 32], // serum_vault_signer
-            [0x0f; 32], // uer_source_token_account
-            [0x10; 32], // uer_destination_token_account
+            [0x0f; 32], // uer_source_token_account (sic — IDL typo for "user")
+            [0x10; 32], // uer_destination_token_account (sic — IDL typo for "user")
             [0x11; 32], // user_source_owner
         ];
         // make_tx prepends fee_payer (0) and program (1) — instruction account
@@ -298,8 +301,8 @@ mod tests {
             [0x0c; 32], // serum_coin_vault
             [0x0d; 32], // serum_pc_vault
             [0x0e; 32], // serum_vault_signer
-            [0x0f; 32], // uer_source_token_account
-            [0x10; 32], // uer_destination_token_account
+            [0x0f; 32], // uer_source_token_account (sic — IDL typo for "user")
+            [0x10; 32], // uer_destination_token_account (sic — IDL typo for "user")
             [0x11; 32], // user_source_owner
         ];
         let coin_key_idx = 4 + 2; // post fee_payer + program shift
