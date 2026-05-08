@@ -38,19 +38,19 @@ impl State {
         let instruction = self.pending.get(self.next_index)?;
         self.next_index += 1;
 
-        // The swap instructions only carry the pool's *vaults* in their
-        // account list — not the mints. We resolved them in
-        // `handle_instruction` via `TokenMintLookup`. If the lookup missed
-        // (no matching pre/post token balance for that vault), skip emitting
-        // this row but keep the sequential alignment between pending
-        // instructions and logs intact for any subsequent V4 swaps.
+        // The legacy `swap_base_in` / `swap_base_out` instructions only carry
+        // the pool's *vaults* in their account list — not the mints. We
+        // resolved them in `handle_instruction` via `TokenMintLookup`. If the
+        // lookup missed (no matching pre/post token balance for that vault),
+        // skip emitting this row but keep the sequential alignment between
+        // pending instructions and logs intact for any subsequent V4 swaps.
         let coin_mint = instruction.coin_mint.clone()?;
         let pc_mint = instruction.pc_mint.clone()?;
 
         // Per canonical Raydium AMM v4 source (`math.rs::SwapDirection`):
         //   PC2Coin = 1  (user gave pc, got coin → input=pc, output=coin)
         //   Coin2PC = 2  (user gave coin, got pc → input=coin, output=pc)
-        // Pre-fix the conditional was inverted (`is_pc_to_coin = direction == 2`).
+        // Pre-v0.5.0 the adapter had this inverted (`is_pc_to_coin = direction == 2`).
         // The bug was masked because vaults — not real mints — were stored,
         // so the swapped labels were equally "wrong" either way. Fixing the
         // vault→mint resolution exposes the inversion, so we correct both
@@ -114,10 +114,25 @@ fn decode_instruction(ix: &InstructionView, token_mints: Option<&TokenMintLookup
     match raydium::amm::v4::instructions::unpack(ix.data()) {
         Ok(raydium::amm::v4::instructions::RaydiumV4Instruction::SwapBaseIn(_))
         | Ok(raydium::amm::v4::instructions::RaydiumV4Instruction::SwapBaseOut(_)) => {
-            // Use the IDL-canonical typed account helper. It transparently
+            // V1 — Use the IDL-canonical typed account helper. It transparently
             // handles both the post-fork (18-account, with `amm_target_orders`)
             // and legacy pre-fork (17-account) layouts.
             let accounts = raydium::amm::v4::accounts::get_swap_base_in_accounts(ix).ok()?;
+            let (coin_mint, pc_mint) = resolve_vault_mints(token_mints, accounts.pool_coin_token_account.as_ref(), accounts.pool_pc_token_account.as_ref());
+            Some(InstructionSwap {
+                stack_height: ix.stack_height(),
+                amm: accounts.amm.to_bytes().to_vec(),
+                user_source_owner: accounts.user_source_owner.to_bytes().to_vec(),
+                coin_mint,
+                pc_mint,
+            })
+        }
+        Ok(raydium::amm::v4::instructions::RaydiumV4Instruction::SwapBaseInV2(_))
+        | Ok(raydium::amm::v4::instructions::RaydiumV4Instruction::SwapBaseOutV2(_)) => {
+            // V2 — orderbook-disabled with simpler 8-account layout. Confirmed
+            // on-chain (tx CuEXudB98X7nWG...): emits the same `ray_log`
+            // SwapBaseIn log as V1, so `handle_log` decodes uniformly.
+            let accounts = raydium::amm::v4::accounts::get_swap_base_in_v2_accounts(ix).ok()?;
             let (coin_mint, pc_mint) = resolve_vault_mints(token_mints, accounts.pool_coin_token_account.as_ref(), accounts.pool_pc_token_account.as_ref());
             Some(InstructionSwap {
                 stack_height: ix.stack_height(),
@@ -164,8 +179,10 @@ mod tests {
         TransactionStatusMeta, UiTokenAmount,
     };
 
-    /// SwapBaseIn discriminator (single byte for V4).
+    /// SwapBaseIn discriminator (single byte for V4 — see idl.json + raydium_clmm pattern).
     const SWAP_BASE_IN_DISC: u8 = 9;
+    /// SwapBaseInV2 discriminator — orderbook-disabled, 8-account layout.
+    const SWAP_BASE_IN_V2_DISC: u8 = 16;
 
     /// Borsh-encoded SwapBaseIn payload (amounts irrelevant for these tests).
     fn swap_body() -> Vec<u8> {
@@ -175,11 +192,23 @@ mod tests {
         b
     }
 
+    /// Borsh-encoded SwapBaseInV2 payload (same shape as V1).
+    fn swap_body_v2() -> Vec<u8> {
+        let mut b = vec![SWAP_BASE_IN_V2_DISC];
+        b.extend_from_slice(&0u64.to_le_bytes());
+        b.extend_from_slice(&0u64.to_le_bytes());
+        b
+    }
+
     /// Build a ConfirmedTransaction with one Raydium AMM v4 instruction.
     /// `accounts` must be the per-instruction accounts in IDL order.
     /// `token_balances` populates pre_token_balances so `TokenMintLookup`
     /// can resolve vault → mint.
     fn make_tx(accounts: &[[u8; 32]], token_balances: &[(u32, [u8; 32])]) -> ConfirmedTransaction {
+        make_tx_with_body(accounts, token_balances, swap_body())
+    }
+
+    fn make_tx_with_body(accounts: &[[u8; 32]], token_balances: &[(u32, [u8; 32])], body: Vec<u8>) -> ConfirmedTransaction {
         let fee_payer = [0xfe; 32];
         let program = raydium::amm::v4::PROGRAM_ID;
         let mut keys: Vec<Vec<u8>> = vec![fee_payer.to_vec(), program.to_vec()];
@@ -213,7 +242,7 @@ mod tests {
                     instructions: vec![CompiledInstruction {
                         program_id_index: 1,
                         accounts: acc_idx,
-                        data: swap_body(),
+                        data: body,
                     }],
                     versioned: false,
                     address_table_lookups: vec![],
@@ -318,6 +347,49 @@ mod tests {
         let swap = decode_instruction(&ix, Some(&mints)).expect("legacy decoder must yield InstructionSwap");
         assert_eq!(swap.coin_mint.as_deref(), Some(coin_mint.as_slice()));
         assert_eq!(swap.pc_mint.as_deref(), Some(pc_mint.as_slice()));
+    }
+
+    #[test]
+    fn v2_swap_resolves_8_account_layout_to_mints() {
+        // V2 layout (orderbook-disabled) — confirmed against on-chain tx
+        // CuEXudB98X7nWGVMGgPNFcgB8aEPgHoePvf6jUJYTbMrassDaE593Y3CLyr8APQSWEdM83jmUBHtbR1H4AB7weT
+        // (slot 418472889): inner ix disc=16 with exactly 8 accounts in this
+        // order. Pre-v0.5.0 the adapter only matched V1 disc=9/11 → V2 swaps
+        // produced no rows.
+        let token_program = [0x00; 32];
+        let amm = [0x01; 32];
+        let amm_authority = [0x02; 32];
+        let pool_coin = [0x03; 32];
+        let pool_pc = [0x04; 32];
+        let user_src = [0x05; 32];
+        let user_dst = [0x06; 32];
+        let user_owner = [0x07; 32];
+
+        let coin_mint = [0xaa; 32];
+        let pc_mint = [0xbb; 32];
+        // make_tx prepends fee_payer (0) and program (1); pool_coin lives at
+        // account_keys[3 + 2] = 5, pool_pc at [4 + 2] = 6.
+        let token_balances: &[(u32, [u8; 32])] = &[(5, coin_mint), (6, pc_mint)];
+
+        let tx = make_tx_with_body(
+            &[token_program, amm, amm_authority, pool_coin, pool_pc, user_src, user_dst, user_owner],
+            token_balances,
+            swap_body_v2(),
+        );
+        let meta = tx.meta.as_ref().unwrap();
+        let mints = TokenMintLookup::new(&tx, meta);
+        let ix = tx.walk_instructions().next().unwrap();
+
+        let swap = decode_instruction(&ix, Some(&mints)).expect("V2 decode must succeed");
+        assert_eq!(swap.coin_mint.as_deref(), Some(coin_mint.as_slice()));
+        assert_eq!(swap.pc_mint.as_deref(), Some(pc_mint.as_slice()));
+        assert_eq!(swap.amm, amm.to_vec());
+        assert_eq!(swap.user_source_owner, user_owner.to_vec());
+
+        // Regression: V2 must NOT confuse account layout with V1 (where
+        // pool_coin lived at index 5).
+        assert_ne!(swap.coin_mint.as_deref(), Some(pool_coin.as_slice()));
+        assert_ne!(swap.pc_mint.as_deref(), Some(pool_pc.as_slice()));
     }
 
     #[test]

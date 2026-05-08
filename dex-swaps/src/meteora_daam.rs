@@ -60,7 +60,10 @@ fn decode_swap_instruction(ix: &InstructionView) -> Option<PendingSwap> {
     }
 
     match daam::instructions::unpack(ix.data()) {
-        Ok(daam::instructions::MeteoraDammInstruction::Swap(_)) => {
+        Ok(daam::instructions::MeteoraDammInstruction::Swap(_)) | Ok(daam::instructions::MeteoraDammInstruction::Swap2(_)) => {
+            // `swap` and `swap2` share the same 14-account list per the
+            // canonical cp_amm IDL; only the args struct (dynamic-fee /
+            // referral params) differs. Same anchor-CPI `EvtSwap` emit.
             let accounts = daam::accounts::get_swap_accounts(ix).ok()?;
             Some(PendingSwap {
                 stack_height: ix.stack_height(),
