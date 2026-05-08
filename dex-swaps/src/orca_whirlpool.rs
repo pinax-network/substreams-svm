@@ -469,4 +469,170 @@ mod tests {
         assert_eq!(swaps[1].mint_b.as_deref(), Some(mint_two_b.as_slice()));
         assert!(!swaps[1].a_to_b);
     }
+
+    /// `two_hop_swap_v2` discriminator from the Whirlpool IDL.
+    const TWO_HOP_SWAP_V2_DISC: [u8; 8] = [186, 143, 209, 29, 254, 2, 194, 117];
+
+    /// TwoHopSwapV2Instruction args body — mirrors the canonical IDL
+    /// (amount, other_amount_threshold, amount_specified_is_input,
+    /// a_to_b_one, a_to_b_two, sqrt_price_limit_one, sqrt_price_limit_two,
+    /// remaining_accounts_info=None).
+    fn two_hop_swap_v2_body(a_to_b_one: bool, a_to_b_two: bool) -> Vec<u8> {
+        let mut b = Vec::new();
+        b.extend_from_slice(&0u64.to_le_bytes()); // amount
+        b.extend_from_slice(&0u64.to_le_bytes()); // other_amount_threshold
+        b.push(0u8); // amount_specified_is_input
+        b.push(if a_to_b_one { 1 } else { 0 });
+        b.push(if a_to_b_two { 1 } else { 0 });
+        b.extend_from_slice(&0u128.to_le_bytes()); // sqrt_price_limit_one
+        b.extend_from_slice(&0u128.to_le_bytes()); // sqrt_price_limit_two
+        b.push(0u8); // remaining_accounts_info: Option<…> -> None
+        b
+    }
+
+    #[test]
+    fn two_hop_swap_v2_uses_explicit_mints_for_each_hop() {
+        // TwoHopSwapV2 account layout (per canonical Whirlpool IDL):
+        //   whirlpool_one, whirlpool_two, token_mint_input,
+        //   token_mint_intermediate, token_mint_output,
+        //   token_program_input, token_program_intermediate,
+        //   token_program_output, token_owner_account_input,
+        //   token_vault_one_input, token_vault_one_intermediate,
+        //   token_vault_two_intermediate, token_vault_two_output,
+        //   token_owner_account_output, token_authority,
+        //   tick_array_one_*, tick_array_two_*, oracle_one, oracle_two.
+        //
+        // Mint mapping per hop is derived from `a_to_b_one` / `a_to_b_two`:
+        //   hop 1: a_to_b_one=true  → mint_a=input,        mint_b=intermediate
+        //          a_to_b_one=false → mint_a=intermediate, mint_b=input
+        //   hop 2: a_to_b_two=true  → mint_a=intermediate, mint_b=output
+        //          a_to_b_two=false → mint_a=output,       mint_b=intermediate
+
+        let whirlpool_one = [0x02; 32];
+        let whirlpool_two = [0x03; 32];
+        let mint_input = [0xaa; 32];
+        let mint_intermediate = [0xbb; 32];
+        let mint_output = [0xcc; 32];
+        let token_program_input = [0x06; 32];
+        let token_program_intermediate = [0x07; 32];
+        let token_program_output = [0x08; 32];
+        let token_owner_input = [0x09; 32];
+        let token_vault_one_input = [0x0a; 32];
+        let token_vault_one_intermediate = [0x0b; 32];
+        let token_vault_two_intermediate = [0x0c; 32];
+        let token_vault_two_output = [0x0d; 32];
+        let token_owner_output = [0x0e; 32];
+        let token_authority = [0x01; 32];
+        let tick_array_one0 = [0x10; 32];
+        let tick_array_one1 = [0x11; 32];
+        let tick_array_one2 = [0x12; 32];
+        let tick_array_two0 = [0x13; 32];
+        let tick_array_two1 = [0x14; 32];
+        let tick_array_two2 = [0x15; 32];
+        let oracle_one = [0x16; 32];
+        let oracle_two = [0x17; 32];
+        let memo_program = [0x18; 32];
+
+        // Direction: a_to_b_one=true (input → intermediate flows a→b),
+        //            a_to_b_two=false (output → intermediate flows b→a, i.e.
+        //                              intermediate → output flows a→b at
+        //                              the user level).
+        let tx = make_tx(
+            TWO_HOP_SWAP_V2_DISC,
+            two_hop_swap_v2_body(true, false),
+            &[
+                whirlpool_one,
+                whirlpool_two,
+                mint_input,
+                mint_intermediate,
+                mint_output,
+                token_program_input,
+                token_program_intermediate,
+                token_program_output,
+                token_owner_input,
+                token_vault_one_input,
+                token_vault_one_intermediate,
+                token_vault_two_intermediate,
+                token_vault_two_output,
+                token_owner_output,
+                token_authority,
+                tick_array_one0,
+                tick_array_one1,
+                tick_array_one2,
+                tick_array_two0,
+                tick_array_two1,
+                tick_array_two2,
+                oracle_one,
+                oracle_two,
+                memo_program,
+            ],
+            &[],
+        );
+        let meta = tx.meta.as_ref().unwrap();
+        let mints = TokenMintLookup::new(&tx, meta);
+        let ix = tx.walk_instructions().next().unwrap();
+
+        let swaps = decode_instructions(&ix, Some(&mints));
+        assert_eq!(swaps.len(), 2, "two_hop_swap_v2 must yield two InstructionSwaps");
+
+        // hop 1: a_to_b_one=true → mint_a=input, mint_b=intermediate
+        assert_eq!(swaps[0].whirlpool, whirlpool_one.to_vec());
+        assert_eq!(swaps[0].mint_a.as_deref(), Some(mint_input.as_slice()), "hop 1 mint_a (a_to_b=true) must be the user's input mint");
+        assert_eq!(swaps[0].mint_b.as_deref(), Some(mint_intermediate.as_slice()));
+        assert!(swaps[0].a_to_b);
+
+        // hop 2: a_to_b_two=false → mint_a=output, mint_b=intermediate
+        assert_eq!(swaps[1].whirlpool, whirlpool_two.to_vec());
+        assert_eq!(swaps[1].mint_a.as_deref(), Some(mint_output.as_slice()));
+        assert_eq!(swaps[1].mint_b.as_deref(), Some(mint_intermediate.as_slice()));
+        assert!(!swaps[1].a_to_b);
+
+        // Regression: V2 must NOT need TokenMintLookup — even with empty
+        // pre/post token balances, mints come straight from the IDL accounts.
+        assert!(swaps[0].mint_a.is_some(), "V2 mints must resolve without TokenMintLookup");
+        assert!(swaps[1].mint_a.is_some(), "V2 mints must resolve without TokenMintLookup");
+    }
+
+    #[test]
+    fn two_hop_swap_v2_a_to_b_inverted_swaps_hop_orientations() {
+        // Same accounts, but flip both a_to_b flags. Expect the
+        // (mint_a, mint_b) per hop to flip accordingly.
+        let whirlpool_one = [0x02; 32];
+        let whirlpool_two = [0x03; 32];
+        let mint_input = [0xaa; 32];
+        let mint_intermediate = [0xbb; 32];
+        let mint_output = [0xcc; 32];
+        let accounts: Vec<[u8; 32]> = vec![
+            whirlpool_one,
+            whirlpool_two,
+            mint_input,
+            mint_intermediate,
+            mint_output,
+            [0x06; 32], [0x07; 32], [0x08; 32], [0x09; 32], // programs + user owner input
+            [0x0a; 32], [0x0b; 32], [0x0c; 32], [0x0d; 32], // vaults
+            [0x0e; 32], [0x01; 32],                         // owner output, token_authority
+            [0x10; 32], [0x11; 32], [0x12; 32],             // tick_array_one_*
+            [0x13; 32], [0x14; 32], [0x15; 32],             // tick_array_two_*
+            [0x16; 32], [0x17; 32],                         // oracles
+            [0x18; 32],                                      // memo_program
+        ];
+
+        let tx = make_tx(TWO_HOP_SWAP_V2_DISC, two_hop_swap_v2_body(false, true), &accounts, &[]);
+        let meta = tx.meta.as_ref().unwrap();
+        let mints = TokenMintLookup::new(&tx, meta);
+        let ix = tx.walk_instructions().next().unwrap();
+
+        let swaps = decode_instructions(&ix, Some(&mints));
+        assert_eq!(swaps.len(), 2);
+
+        // hop 1: a_to_b_one=false → mint_a=intermediate, mint_b=input
+        assert_eq!(swaps[0].mint_a.as_deref(), Some(mint_intermediate.as_slice()));
+        assert_eq!(swaps[0].mint_b.as_deref(), Some(mint_input.as_slice()));
+        assert!(!swaps[0].a_to_b);
+
+        // hop 2: a_to_b_two=true → mint_a=intermediate, mint_b=output
+        assert_eq!(swaps[1].mint_a.as_deref(), Some(mint_intermediate.as_slice()));
+        assert_eq!(swaps[1].mint_b.as_deref(), Some(mint_output.as_slice()));
+        assert!(swaps[1].a_to_b);
+    }
 }
