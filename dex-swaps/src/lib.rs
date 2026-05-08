@@ -91,10 +91,10 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
             swaps.push(swap);
         }
 
-        raydium_amm_v4_state.handle_instruction(&instruction);
+        raydium_amm_v4_state.handle_instruction(&instruction, &token_mints);
         raydium_clmm_state.handle_instruction(&instruction, &token_mints);
         raydium_cpmm_state.handle_instruction(&instruction);
-        orca_whirlpool_state.handle_instruction(&instruction);
+        orca_whirlpool_state.handle_instruction(&instruction, &token_mints);
 
         if let Some(swap) = spl_token_swap::handle_instruction(&instruction, &token_mints) {
             log::info!("SPL Token Swap 🚨 {}", base58::encode(&swap.program_id));

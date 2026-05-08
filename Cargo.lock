@@ -3048,8 +3048,8 @@ dependencies = [
 
 [[package]]
 name = "substreams-solana-idls"
-version = "1.1.6"
-source = "git+https://github.com/pinax-network/substreams-solana-idls?tag=v1.1.6#e87f4bc3742e868c2145c92e4aaf6c4165cf587a"
+version = "1.2.0"
+source = "git+https://github.com/pinax-network/substreams-solana-idls?branch=feat%2Fsvm-dex-canonical-account-helpers-v1.2.0#91b63309e4aba5eae31fbdfd7a564715fa6ef70f"
 dependencies = [
  "base64 0.22.1",
  "borsh 1.5.7",
