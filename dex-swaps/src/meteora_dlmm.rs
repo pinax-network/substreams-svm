@@ -56,14 +56,67 @@ pub(crate) fn extract_pool(ix: &InstructionView) -> Option<Vec<u8>> {
 }
 
 fn decode_swap_instruction(ix: &InstructionView) -> Option<PendingSwap> {
+    // Meteora DLMM ships six swap-flavour instructions. Each carries the same
+    // (lb_pair, user, token_x_mint, token_y_mint) in different positions of
+    // its account list and emits the same anchor CPI `Swap` event with a
+    // `swap_for_y` direction flag — handled uniformly by `decode_swap_event`.
+    //
+    // Pre-v0.5.0 we matched only the original `Swap` instruction, silently
+    // dropping ~5/6 of post-launch DLMM volume routed through the variants
+    // below.
     match dlmm::instructions::unpack(ix.data()) {
         Ok(dlmm::instructions::MeteoraDlmmInstruction::Swap(_)) => {
-            let accounts = dlmm::accounts::get_swap_accounts(ix).ok()?;
+            let a = dlmm::accounts::get_swap_accounts(ix).ok()?;
             Some(PendingSwap {
-                user: accounts.user.to_bytes().to_vec(),
-                lb_pair: accounts.lb_pair.to_bytes().to_vec(),
-                token_x_mint: accounts.token_x_mint.to_bytes().to_vec(),
-                token_y_mint: accounts.token_y_mint.to_bytes().to_vec(),
+                user: a.user.to_bytes().to_vec(),
+                lb_pair: a.lb_pair.to_bytes().to_vec(),
+                token_x_mint: a.token_x_mint.to_bytes().to_vec(),
+                token_y_mint: a.token_y_mint.to_bytes().to_vec(),
+            })
+        }
+        Ok(dlmm::instructions::MeteoraDlmmInstruction::Swap2(_)) => {
+            let a = dlmm::accounts::get_swap2_accounts(ix).ok()?;
+            Some(PendingSwap {
+                user: a.user.to_bytes().to_vec(),
+                lb_pair: a.lb_pair.to_bytes().to_vec(),
+                token_x_mint: a.token_x_mint.to_bytes().to_vec(),
+                token_y_mint: a.token_y_mint.to_bytes().to_vec(),
+            })
+        }
+        Ok(dlmm::instructions::MeteoraDlmmInstruction::SwapExactOut(_)) => {
+            let a = dlmm::accounts::get_swap_exact_out_accounts(ix).ok()?;
+            Some(PendingSwap {
+                user: a.user.to_bytes().to_vec(),
+                lb_pair: a.lb_pair.to_bytes().to_vec(),
+                token_x_mint: a.token_x_mint.to_bytes().to_vec(),
+                token_y_mint: a.token_y_mint.to_bytes().to_vec(),
+            })
+        }
+        Ok(dlmm::instructions::MeteoraDlmmInstruction::SwapExactOut2(_)) => {
+            let a = dlmm::accounts::get_swap_exact_out2_accounts(ix).ok()?;
+            Some(PendingSwap {
+                user: a.user.to_bytes().to_vec(),
+                lb_pair: a.lb_pair.to_bytes().to_vec(),
+                token_x_mint: a.token_x_mint.to_bytes().to_vec(),
+                token_y_mint: a.token_y_mint.to_bytes().to_vec(),
+            })
+        }
+        Ok(dlmm::instructions::MeteoraDlmmInstruction::SwapWithPriceImpact(_)) => {
+            let a = dlmm::accounts::get_swap_with_price_impact_accounts(ix).ok()?;
+            Some(PendingSwap {
+                user: a.user.to_bytes().to_vec(),
+                lb_pair: a.lb_pair.to_bytes().to_vec(),
+                token_x_mint: a.token_x_mint.to_bytes().to_vec(),
+                token_y_mint: a.token_y_mint.to_bytes().to_vec(),
+            })
+        }
+        Ok(dlmm::instructions::MeteoraDlmmInstruction::SwapWithPriceImpact2(_)) => {
+            let a = dlmm::accounts::get_swap_with_price_impact2_accounts(ix).ok()?;
+            Some(PendingSwap {
+                user: a.user.to_bytes().to_vec(),
+                lb_pair: a.lb_pair.to_bytes().to_vec(),
+                token_x_mint: a.token_x_mint.to_bytes().to_vec(),
+                token_y_mint: a.token_y_mint.to_bytes().to_vec(),
             })
         }
         _ => None,
