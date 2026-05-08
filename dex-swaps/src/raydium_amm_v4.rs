@@ -38,12 +38,13 @@ impl State {
         let instruction = self.pending.get(self.next_index)?;
         self.next_index += 1;
 
-        // The legacy `swap_base_in` / `swap_base_out` instructions only carry
-        // the pool's *vaults* in their account list — not the mints. We
-        // resolved them in `handle_instruction` via `TokenMintLookup`. If the
-        // lookup missed (no matching pre/post token balance for that vault),
-        // skip emitting this row but keep the sequential alignment between
-        // pending instructions and logs intact for any subsequent V4 swaps.
+        // The `swap_base_in` / `swap_base_out` instructions (V1 and V2) only
+        // carry the pool's *vaults* in their account list — not the mints.
+        // We resolved them in `handle_instruction` via `TokenMintLookup`. If
+        // the lookup missed (no matching pre/post token balance for that
+        // vault), skip emitting this row but keep the sequential alignment
+        // between pending instructions and logs intact for any subsequent V4
+        // swaps.
         let coin_mint = instruction.coin_mint.clone()?;
         let pc_mint = instruction.pc_mint.clone()?;
 
