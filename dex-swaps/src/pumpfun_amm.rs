@@ -82,9 +82,8 @@ fn decode_trade_instruction(instruction: &InstructionView) -> Option<PendingTrad
             // in `substreams_solana_idls::pumpswap::accounts`. Hand-indexing
             // `accounts.get(N)` here previously caused an off-by-one
             // (`base_mint` = accounts[4], should have been [3]) which let the
-            // user's *base token account* leak into the `mint` slot,
-            // producing a long tail of fake `(mint0, mint1)` pairs per pool
-            // downstream.
+            // user's *base token account* leak into the `mint` slot, producing
+            // ~165 spurious `(mint0, mint1)` pairs per pool downstream.
             let accounts = TradeAccounts::try_from(instruction).ok()?;
             Some(PendingTrade {
                 pool: accounts.pool.to_bytes().to_vec(),
