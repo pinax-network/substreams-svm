@@ -78,6 +78,13 @@ ORDER BY (mint, protocol, program_id, amm, amm_pool)
 SETTINGS deduplicate_merge_projection_mode = 'rebuild'
 COMMENT 'Aggregating pools by mint optimize for universal summary & distinct mints';
 
+-- Aggregator protocols (jupiter_v4, jupiter_v6) emit per-leg swap rows where
+-- amm_pool is the routed inner pool but input_mint/output_mint come from the
+-- aggregator's own event payload. The aggregator's event mints don't always
+-- match the inner pool's token pair, so feeding those rows into the
+-- pool→mint MV cross-pairs an inner pool with mints it doesn't hold.
+-- See substreams-svm#209. Filter aggregators at the MV boundary; the
+-- raw `swaps` table is unchanged (volume analytics still valid).
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_state_pools_aggregating_by_mint_input_mint
 TO state_pools_aggregating_by_mint
 AS
@@ -95,6 +102,7 @@ SELECT
     -- universal --
     count() as transactions
 FROM swaps
+WHERE protocol NOT IN ('jupiter_v4', 'jupiter_v6')
 GROUP BY mint, protocol, program_id, amm, amm_pool;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_state_pools_aggregating_by_mint_output_mint
@@ -114,4 +122,5 @@ SELECT
     -- universal --
     count() as transactions
 FROM swaps
+WHERE protocol NOT IN ('jupiter_v4', 'jupiter_v6')
 GROUP BY mint, protocol, program_id, amm, amm_pool;
