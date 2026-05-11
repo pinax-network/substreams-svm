@@ -50,11 +50,12 @@ pub(crate) fn extract_pool(instruction: &InstructionView) -> Option<Vec<u8>> {
 }
 
 fn decode_trade_instruction(instruction: &InstructionView) -> Option<PendingTrade> {
-    match pumpfun::instructions::unpack(instruction.data()) {
-        Ok(pumpfun::instructions::PumpFunInstruction::Buy(_))
-        | Ok(pumpfun::instructions::PumpFunInstruction::Sell(_)) => Some(PendingTrade {
-            bonding_curve: instruction.accounts().get(3)?.0.to_vec(),
-        }),
-        _ => None,
-    }
+    let bonding_curve = match pumpfun::instructions::unpack(instruction.data()) {
+        Ok(pumpfun::instructions::PumpFunInstruction::Buy(_)) => pumpfun::accounts::get_buy_accounts(instruction).ok()?.bonding_curve,
+        Ok(pumpfun::instructions::PumpFunInstruction::Sell(_)) => pumpfun::accounts::get_sell_accounts(instruction).ok()?.bonding_curve,
+        _ => return None,
+    };
+    Some(PendingTrade {
+        bonding_curve: bonding_curve.to_bytes().to_vec(),
+    })
 }

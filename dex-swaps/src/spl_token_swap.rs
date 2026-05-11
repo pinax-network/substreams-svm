@@ -1,14 +1,24 @@
 use proto::pb::dex::swaps::v1 as pb;
 use substreams_solana::block_view::InstructionView;
 use substreams_solana_idls::{
-    spl::token_swap::accounts,
+    spl::token_swap::{self, accounts},
     spl::token_swap::instructions::{self, TokenSwapInstruction},
 };
 
 use crate::token_mints::TokenMintLookup;
 
+/// Canonical SPL Token Swap program plus known forks that reuse the exact
+/// instruction layout. Adapter dispatch is gated to this allowlist because the
+/// SPL Token Swap `Swap` discriminator (`0x01`) is single-byte and the payload
+/// length matches many unrelated programs; without a gate, dispatch matched
+/// any 17-byte instruction starting with `0x01` (cf. substreams-svm#208).
+const ALLOWED_PROGRAM_IDS: &[[u8; 32]] = &[token_swap::PROGRAM_ID];
+
 pub(crate) fn handle_instruction(ix: &InstructionView, token_mints: &TokenMintLookup) -> Option<pb::Swap> {
     let program_id = ix.program_id().0;
+    if !ALLOWED_PROGRAM_IDS.iter().any(|allowed| allowed.as_slice() == program_id.as_slice()) {
+        return None;
+    }
     let TokenSwapInstruction::Swap {
         amount_in,
         minimum_amount_out,
@@ -114,7 +124,10 @@ mod tests {
     }
 
     #[test]
-    fn emits_spl_token_swap_for_forked_token_swap_layout() {
+    fn ignores_unrelated_program_with_matching_layout() {
+        // Any 17-byte instruction starting with 0x01 used to match. Now gated to
+        // the canonical SPL Token Swap program ID; an arbitrary program_id with
+        // an identical-looking payload must not emit.
         let tx = make_tx(
             PROGRAM,
             &[
@@ -133,22 +146,12 @@ mod tests {
         let instruction = tx.walk_instructions().next().unwrap();
         let token_mints = token_mints();
 
-        let swap = handle_instruction(&instruction, &token_mints).expect("spl token swap");
-
-        assert_eq!(swap.protocol, pb::Protocol::SplTokenSwap as i32);
-        assert_eq!(swap.program_id, PROGRAM.to_vec());
-        assert_eq!(swap.amm, PROGRAM.to_vec());
-        assert_eq!(swap.amm_pool, SWAP_ACCOUNT.to_vec());
-        assert_eq!(swap.user, USER.to_vec());
-        assert_eq!(swap.input_mint, INPUT_MINT.to_vec());
-        assert_eq!(swap.input_amount, 500);
-        assert_eq!(swap.output_mint, OUTPUT_MINT.to_vec());
-        assert_eq!(swap.output_amount, 450);
+        assert!(handle_instruction(&instruction, &token_mints).is_none());
     }
 
     #[test]
     fn ignores_bad_token_swap_payloads() {
-        let tx = make_tx(PROGRAM, &[SWAP_ACCOUNT, AUTHORITY, USER], vec![instructions::SWAP]);
+        let tx = make_tx(token_swap::PROGRAM_ID, &[SWAP_ACCOUNT, AUTHORITY, USER], vec![instructions::SWAP]);
         let instruction = tx.walk_instructions().next().unwrap();
         let token_mints = token_mints();
 
@@ -158,7 +161,7 @@ mod tests {
     #[test]
     fn ignores_missing_token_mints() {
         let tx = make_tx(
-            PROGRAM,
+            token_swap::PROGRAM_ID,
             &[
                 SWAP_ACCOUNT,
                 AUTHORITY,
@@ -179,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn emits_spl_token_swap_for_official_token_swap_program_too() {
+    fn emits_spl_token_swap_for_canonical_program() {
         let tx = make_tx(
             token_swap::PROGRAM_ID,
             &[
@@ -198,6 +201,16 @@ mod tests {
         let instruction = tx.walk_instructions().next().unwrap();
         let token_mints = token_mints();
 
-        assert!(handle_instruction(&instruction, &token_mints).is_some());
+        let swap = handle_instruction(&instruction, &token_mints).expect("spl token swap");
+
+        assert_eq!(swap.protocol, pb::Protocol::SplTokenSwap as i32);
+        assert_eq!(swap.program_id, token_swap::PROGRAM_ID.to_vec());
+        assert_eq!(swap.amm, token_swap::PROGRAM_ID.to_vec());
+        assert_eq!(swap.amm_pool, SWAP_ACCOUNT.to_vec());
+        assert_eq!(swap.user, USER.to_vec());
+        assert_eq!(swap.input_mint, INPUT_MINT.to_vec());
+        assert_eq!(swap.input_amount, 500);
+        assert_eq!(swap.output_mint, OUTPUT_MINT.to_vec());
+        assert_eq!(swap.output_amount, 450);
     }
 }

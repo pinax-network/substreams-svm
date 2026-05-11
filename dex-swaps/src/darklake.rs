@@ -59,9 +59,13 @@ impl State {
             amm_pool: darklake::PROGRAM_ID.to_vec(),
             user: event.trader.to_bytes().to_vec(),
             input_mint,
-            input_amount: event.amount_in,
+            // Darklake emits both intent (`amount_in`/`amount_out`) and
+            // realised post-fee values (`actual_amount_in`/`actual_amount_out`).
+            // Use the actuals so charts and volume reflect what users
+            // actually paid/received. See substreams-svm#210 item 4.
+            input_amount: event.actual_amount_in,
             output_mint,
-            output_amount: event.amount_out,
+            output_amount: event.actual_amount_out,
         })
     }
 }
