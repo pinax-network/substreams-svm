@@ -30,7 +30,11 @@ impl State {
                 program_id: boop::PROGRAM_ID.to_vec(),
                 stack_height: 0,
                 amm: boop::PROGRAM_ID.to_vec(),
-                amm_pool: boop::PROGRAM_ID.to_vec(),
+                // Boop is a bonding-curve program: each token has its own
+                // curve, so the per-token mint is the stable per-pool
+                // identifier surfaced in the event payload (no separate pool
+                // PDA exposed). See substreams-svm#210 item 1a.
+                amm_pool: event.mint.to_bytes().to_vec(),
                 user: event.buyer.to_bytes().to_vec(),
                 input_mint: SOL_MINT.to_vec(),
                 input_amount: event.amount_in,
@@ -42,7 +46,7 @@ impl State {
                 program_id: boop::PROGRAM_ID.to_vec(),
                 stack_height: 0,
                 amm: boop::PROGRAM_ID.to_vec(),
-                amm_pool: boop::PROGRAM_ID.to_vec(),
+                amm_pool: event.mint.to_bytes().to_vec(),
                 user: event.seller.to_bytes().to_vec(),
                 input_mint: event.mint.to_bytes().to_vec(),
                 input_amount: event.amount_in,
