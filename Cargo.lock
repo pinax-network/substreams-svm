@@ -516,8 +516,11 @@ checksum = "6e5c37193a1db1d8ed868c03ec7b152175f26160a5b740e5e484143877e0adf0"
 name = "dex-swaps"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
+ "borsh 1.5.7",
  "common",
  "proto",
+ "solana-program",
  "substreams 0.7.3",
  "substreams-solana",
  "substreams-solana-idls",
