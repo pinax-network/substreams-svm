@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use proto::pb::dex::swaps::v1 as pb;
 use substreams_solana::block_view::InstructionView;
 use substreams_solana_idls::meteora::dlmm;
@@ -15,19 +17,26 @@ struct SwapEvent {
     swap_for_y: bool,
 }
 
-pub(crate) fn handle_instruction(pending_swap: &mut Option<PendingSwap>, instruction: &InstructionView) -> Option<pb::Swap> {
+/// Hold pending swaps as a FIFO queue rather than a single `Option` slot. The
+/// queue is consumed front-to-back in `walk_instructions` order, which on
+/// chain matches the order in which each swap's anchor-CPI `Swap` event
+/// fires after its own instruction. The single-slot variant could silently
+/// lose the first swap's context if a second swap instruction overwrote
+/// `pending` before the first event arrived (e.g. on a future anchor-CPI
+/// event variant the adapter doesn't yet match).
+pub(crate) fn handle_instruction(pending: &mut VecDeque<PendingSwap>, instruction: &InstructionView) -> Option<pb::Swap> {
     let program_id = instruction.program_id().0;
     if program_id != &dlmm::PROGRAM_ID {
         return None;
     }
 
     if let Some(swap) = decode_swap_instruction(instruction) {
-        *pending_swap = Some(swap);
+        pending.push_back(swap);
         return None;
     }
 
     let event = decode_swap_event(instruction)?;
-    let swap = pending_swap.take()?;
+    let swap = pending.pop_front()?;
     let (input_mint, output_mint) = if event.swap_for_y {
         (swap.token_x_mint.clone(), swap.token_y_mint.clone())
     } else {
