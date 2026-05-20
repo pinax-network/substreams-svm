@@ -70,7 +70,6 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
             swaps.push(swap);
         }
         byreal_state.handle_instruction(&instruction, &token_mints);
-        darklake_state.handle_instruction(&instruction);
         if let Some(swap) = pumpfun::handle_instruction(&mut pumpfun_pending, &instruction) {
             swaps.push(swap);
         }
