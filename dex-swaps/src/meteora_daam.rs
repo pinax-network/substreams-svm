@@ -84,6 +84,15 @@ fn decode_swap_event(ix: &InstructionView) -> Option<SwapEvent> {
             output_amount: event.swap_result.output_amount,
             trade_direction: event.trade_direction,
         }),
+        // Since the cp-amm upgrade on 2025-12-26 both `swap` and `swap2`
+        // emit `EvtSwap2` instead of `EvtSwap`. `included_transfer_fee_amount_in`
+        // mirrors what the user paid (pre-pool fees) and is the analogue of
+        // the legacy `actual_amount_in`.
+        Ok(daam::anchor_cpi_event::MeteoraDammAnchorCpiEvent::EvtSwap2(event)) => Some(SwapEvent {
+            amount_in: event.included_transfer_fee_amount_in,
+            output_amount: event.swap_result.output_amount,
+            trade_direction: event.trade_direction,
+        }),
         _ => None,
     }
 }
