@@ -135,7 +135,7 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
         if let Some(swap) = raydium_amm_v4_state.handle_log(log_message) {
             swaps.push(swap);
         }
-        if let Some(swap) = raydium_clmm_state.handle_log(log_message) {
+        if let Some(swap) = raydium_clmm_state.handle_log(log_message, &token_mints) {
             swaps.push(swap);
         }
         if let Some(swap) = raydium_cpmm_state.handle_log(log_message) {
