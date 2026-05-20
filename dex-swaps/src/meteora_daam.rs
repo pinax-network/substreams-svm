@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use proto::pb::dex::swaps::v1 as pb;
 use substreams_solana::block_view::InstructionView;
 use substreams_solana_idls::meteora::daam;
@@ -16,19 +18,22 @@ struct SwapEvent {
     trade_direction: u8,
 }
 
-pub(crate) fn handle_instruction(pending_swap: &mut Option<PendingSwap>, instruction: &InstructionView) -> Option<pb::Swap> {
+/// Hold pending swaps as a FIFO queue. See `meteora_dlmm` for the rationale —
+/// same hazard applies: a stale `Option<PendingSwap>` could be overwritten by
+/// a second swap instruction before the first's anchor-CPI event landed.
+pub(crate) fn handle_instruction(pending: &mut VecDeque<PendingSwap>, instruction: &InstructionView) -> Option<pb::Swap> {
     let program_id = instruction.program_id().0;
     if program_id != &daam::PROGRAM_ID {
         return None;
     }
 
     if let Some(swap) = decode_swap_instruction(instruction) {
-        *pending_swap = Some(swap);
+        pending.push_back(swap);
         return None;
     }
 
     let event = decode_swap_event(instruction)?;
-    let swap = pending_swap.take()?;
+    let swap = pending.pop_front()?;
     let (input_mint, output_mint) = if event.trade_direction == 0 {
         (swap.token_a_mint.clone(), swap.token_b_mint.clone())
     } else {

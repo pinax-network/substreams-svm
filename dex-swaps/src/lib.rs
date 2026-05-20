@@ -22,6 +22,8 @@ mod routed_pool;
 mod spl_token_swap;
 mod token_mints;
 
+use std::collections::VecDeque;
+
 use common::solana::{get_fee_payer, get_signers};
 use proto::pb::dex::swaps::v1 as pb;
 use substreams::{errors::Error, log};
@@ -51,8 +53,8 @@ fn process_transaction(tx: ConfirmedTransaction) -> Option<pb::Transaction> {
     let mut pumpfun_pending = None;
     let mut pumpfun_amm_pending = None;
     let mut meteora_amm_state = meteora_amm::State::new();
-    let mut meteora_daam_pending = None;
-    let mut meteora_dlmm_pending = None;
+    let mut meteora_daam_pending: VecDeque<meteora_daam::PendingSwap> = VecDeque::new();
+    let mut meteora_dlmm_pending: VecDeque<meteora_dlmm::PendingSwap> = VecDeque::new();
     let mut moonshot_state = moonshot::State::new();
     let mut okx_state = okx::State::new();
     let mut pancakeswap_state = pancakeswap::State::new();
