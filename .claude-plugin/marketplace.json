@@ -1,0 +1,18 @@
+{
+  "name": "pinax-substreams-svm",
+  "owner": {
+    "name": "Pinax",
+    "url": "https://github.com/pinax-network"
+  },
+  "metadata": {
+    "description": "Substreams development skills for the Pinax SVM Substreams repo."
+  },
+  "plugins": [
+    {
+      "name": "substreams-svm",
+      "source": "./",
+      "description": "Substreams skills for SVM (Solana): development, SQL sinks, sinks, packaging, testing and release conventions.",
+      "category": "development"
+    }
+  ]
+}
