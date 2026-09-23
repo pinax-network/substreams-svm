@@ -1,0 +1,9 @@
+{
+  "name": "substreams-svm",
+  "description": "Substreams skills for SVM (Solana): development, SQL sinks, sinks, packaging, testing and release conventions.",
+  "author": {
+    "name": "Pinax",
+    "url": "https://github.com/pinax-network"
+  },
+  "repository": "https://github.com/pinax-network/substreams-svm"
+}
