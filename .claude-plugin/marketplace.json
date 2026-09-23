@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "substreams-svm",
-      "source": "./",
+      "source": "./.github",
       "description": "Substreams skills for SVM (Solana): development, SQL sinks, sinks, packaging, testing and release conventions.",
       "category": "development"
     }

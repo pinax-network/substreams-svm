@@ -5,6 +5,5 @@
     "name": "Pinax",
     "url": "https://github.com/pinax-network"
   },
-  "repository": "https://github.com/pinax-network/substreams-svm",
-  "skills": "./.github/skills"
+  "repository": "https://github.com/pinax-network/substreams-svm"
 }
