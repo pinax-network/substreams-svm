@@ -1242,12 +1242,15 @@ name = "native-token"
 version = "0.0.0"
 dependencies = [
  "bincode 2.0.1",
+ "buffa",
  "common",
+ "flate2",
+ "log",
  "proto",
  "solana-program",
+ "spl-transfers",
  "substreams",
- "substreams-solana",
- "substreams-solana-program-instructions",
+ "substreams-solana-core 0.16.0",
 ]
 
 [[package]]
