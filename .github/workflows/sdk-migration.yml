@@ -66,6 +66,14 @@ jobs:
             exit 1
           fi
           cargo test --locked -p dex-swaps --no-default-features
+      - name: Test native system transfers without the Substreams runtime
+        run: |
+          cargo tree --locked -p native-token --no-default-features --edges normal,build,dev > "$RUNNER_TEMP/system-native-dependencies.txt"
+          if grep -Eq '(^|[[:space:]])(substreams|prost|prost-types|substreams-database-change) v' "$RUNNER_TEMP/system-native-dependencies.txt"; then
+            cat "$RUNNER_TEMP/system-native-dependencies.txt"
+            exit 1
+          fi
+          cargo test --locked -p native-token --no-default-features
       - name: Check workspace SDK generation
         run: |
           cargo tree --locked --workspace --edges normal,build > "$RUNNER_TEMP/workspace-dependencies.txt"

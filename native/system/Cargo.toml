@@ -8,11 +8,20 @@ authors = ["Denis <denis@pinax.network>"]
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["substreams"]
+substreams = ["dep:substreams", "common/substreams"]
+
 [dependencies]
-substreams = { workspace = true }
-substreams-solana = { workspace = true }
-substreams-solana-program-instructions = { workspace = true }
+substreams = { workspace = true, optional = true }
+substreams-solana = { package = "substreams-solana-core", version = "0.16.0" }
 solana-program = "2.3.0"
 bincode = { version = "2.0.1", features = ["serde"] }
 proto = { path = "../../proto" }
-common = { path = "../../common" }
+common = { path = "../../common", default-features = false }
+spl-transfers = { path = "../../spl/transfers" }
+
+[dev-dependencies]
+log = "0.4"
+buffa = { workspace = true }
+flate2 = "1"
