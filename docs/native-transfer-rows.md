@@ -43,3 +43,8 @@ balance-only transactions, create/self/zero behavior, v0 loaded keys, CPI metada
 and full `u64` amounts. The existing `native-token` tests independently compare
 system instructions with the wrapper on that mainnet fixture and all five
 supported variants. Database field order is not contractual; row order is.
+
+The [published v0.3.0 boundary corpus](../svm-transfers/tests/fixtures/legacy-v0.3.0/README.md)
+executes the exact historical WASM pipeline: 17 cases match retained row fields,
+four retain explicit accepted-output differences, and two reject source shapes
+the old package accepts or skips. Those differences remain migration gates.
