@@ -20,6 +20,11 @@ This package combines supported Solana DEX protocol events into one database-rea
 `db_out` WASM handler. For an already decoded complete block, call
 `dex_swaps::project_with_limits` once, borrow its projection for typed consumers,
 then move it into `svm_dex::native::changes(clock, projection, max_swaps, max_bytes)`.
+The formatter enforces the exact encoded output budget after each candidate row,
+before retaining it, so repeated transaction fields cannot expand across the
+whole block before rejection. At most one candidate row and one transaction's
+encoded signer list sit outside that budget; their size is bounded by the
+validated input cap. Exceeding a limit returns an error without partial output.
 The adapter checks clock identity, transaction order, row count and encoded input
 and output sizes. Bounds are positive, at most 100,000 swaps and 64 MiB. These
 bounds limit accepted data; they are not a process RSS guarantee. Input projection

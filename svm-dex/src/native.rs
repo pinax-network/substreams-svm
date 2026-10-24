@@ -42,11 +42,7 @@ pub fn changes(clock: &Clock, projection: Projection, max_swaps: usize, max_byte
     if events.try_encoded_len()?.saturating_add(clock.try_encoded_len()?) as usize > max_bytes {
         return Err(Error::msg("swap formatting input capacity exceeded"));
     }
-    let changes = crate::changes(clock, &events)?;
-    if changes.try_encoded_len()? as usize > max_bytes {
-        return Err(Error::msg("swap formatting output capacity exceeded"));
-    }
-    Ok(changes)
+    crate::changes_with_limit(clock, &events, Some(max_bytes))
 }
 
 #[cfg(test)]

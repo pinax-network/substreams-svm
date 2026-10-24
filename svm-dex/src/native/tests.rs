@@ -76,6 +76,24 @@ fn clock_count_and_exact_encoded_output_bounds_fail_atomically() {
     assert!(changes(&clock, projection.clone(), 231, size).is_ok());
     assert!(changes(&clock, projection, 231, size - 1).is_err());
 }
+
+#[test]
+fn repeated_signer_fields_are_bounded_while_rows_are_materialized() {
+    let block = fixture();
+    let mut projection = dex_swaps::project(&block).unwrap();
+    projection.transactions.truncate(1);
+    let tx = &mut projection.transactions[0];
+    // Under the encoded input cap, but expanding this signer list into every
+    // row would retain over 2 GiB. The formatter must stop near its input-sized
+    // output budget instead of building the whole batch and rejecting it later.
+    tx.signers = vec![vec![1; 32]; 4096];
+    tx.swaps = vec![tx.swaps[0].clone(); 16_384];
+    let clock = clock(&block);
+    let max_bytes = projection.clone().into_legacy().try_encoded_len().unwrap() as usize + clock.try_encoded_len().unwrap() as usize;
+    assert!(max_bytes < 16 * 1024 * 1024);
+    let error = changes(&clock, projection, 16_384, max_bytes).unwrap_err();
+    assert!(error.to_string().contains("output capacity exceeded"));
+}
 #[test]
 fn dense_legacy_indexes_cannot_be_shifted_by_empty_duplicate_or_reordered_transactions() {
     let block = fixture();
