@@ -1,3 +1,5 @@
+pub mod native;
+
 use common::db::{common_key_v2, set_clock};
 use proto::pb::dex::swaps::v1 as pb;
 use substreams::{errors::Error, pb::substreams::Clock};
@@ -30,13 +32,23 @@ fn protocol_slug(protocol: substreams::buffa::EnumValue<pb::Protocol>) -> &'stat
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[substreams::handlers::map]
-pub fn db_out(mut clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Error> {
+pub fn db_out(clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Error> {
+    changes(&clock, &swaps)
+}
+
+/// The unchanged legacy formatter, without decoding or a WASM host call.
+/// Native consumers should prefer `native::changes` for clock and size checks.
+pub fn changes(clock: &Clock, swaps: &pb::Events) -> Result<DatabaseChanges, Error> {
+    if clock.timestamp.is_unset() {
+        return Err(Error::msg("swap formatter requires a clock timestamp"));
+    }
     let mut tables = substreams_database_change::tables::Tables::new();
 
     for (transaction_index, transaction) in swaps.transactions.iter().enumerate() {
         for (instruction_index, swap) in transaction.swaps.iter().enumerate() {
-            let key: [(&str, String); 3] = common_key_v2(&clock, transaction_index, instruction_index);
+            let key: [(&str, String); 3] = common_key_v2(clock, transaction_index, instruction_index);
             let signers_raw = transaction.signers.iter().map(base58::encode).collect::<Vec<_>>().join(",");
             let row = tables
                 .create_row("swaps", key)
@@ -58,12 +70,12 @@ pub fn db_out(mut clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Er
                 .set("output_mint", base58::encode(&swap.output_mint))
                 .set("output_amount", swap.output_amount);
 
-            set_clock(&clock, row);
+            set_clock(clock, row);
         }
     }
 
     if tables.all_row_count() > 0 {
-        set_clock(&clock, tables.create_row("blocks", [("block_num", clock.number.to_string())]));
+        set_clock(clock, tables.create_row("blocks", [("block_num", clock.number.to_string())]));
     }
 
     Ok(tables.to_database_changes())
