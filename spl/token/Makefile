@@ -10,7 +10,7 @@ build:
 
 .PHONY: pack
 pack: build
-	substreams pack -o ../spkg/{spkgDefaultName}
+	substreams pack -o ../../spkg/{spkgDefaultName}
 
 .PHONY: noop
 noop: build

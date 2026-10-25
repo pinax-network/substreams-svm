@@ -21,7 +21,6 @@ Notes:
 - `amm_pool` is the stable pool or market identifier when the protocol exposes one.
 - If a protocol does not expose a pool identifier, `amm_pool` falls back to `amm`.
 - Jupiter currently uses `fee_payer` as the best available user-level identity from the decoded event stream.
-- Meteora AMM is intentionally excluded for now because its current decoded swap shape does not expose canonical token mint identities for normalization.
 
 Current coverage:
 
@@ -37,6 +36,7 @@ Current coverage:
 - Raydium CLMM `V2`
 - Raydium CPMM
 - Raydium Launchpad
+- Meteora AMM (mints from token balances, or from `InitializeAccount*` for a temporary token account)
 - Meteora DAAM
 - Meteora DLMM
 - OKX DEX V2
@@ -44,8 +44,6 @@ Current coverage:
 
 Currently excluded:
 
-- Meteora AMM
-  Current decoded swap shape does not expose canonical token mint identities for normalization.
 - Saros
   Current decode exposes intent fields like `amount_in` and `minimum_amount_out`, but not the user, pool, mints, or finalized output amount needed for normalized swaps.
 - Sanctum

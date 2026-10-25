@@ -62,10 +62,11 @@ contradictory version metadata is rejected whole, never partly formatted.
 > input silently skipped those transactions. Deployed svm-transfers v0.3.0
 > predates both and decodes v1 transactions. A legacy release cut from main
 > between the Buffa migration (`b2e4976`, 2026-10-17) and v1 support would
-> have dropped the SPL rows of v1 transactions against it. The committed,
-> unreleased `spkg/spl-token-v0.4.0.spkg` and `spkg/spl-transfers-v0.1.0.spkg`
-> were packed before v1 support (`1e3e052`) and must be repacked before a
-> release.
+> have dropped the SPL rows of v1 transactions against it. The first packs of
+> `spkg/spl-token-v0.4.0.spkg` and `spkg/spl-transfers-v0.1.0.spkg` (`1e3e052`)
+> predated v1 support; both are now packed from a tree with it, and the
+> committed package tests in `svm-transfers` run their WASM against this
+> formatter so that a stale package fails CI.
 
 Primary keys are not part of the WebSocket contract, but SQL sinks and mixed
 WASM/native backfills use them. `system_transfer` keys equal v0.3.0's and the
