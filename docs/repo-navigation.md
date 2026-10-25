@@ -98,6 +98,22 @@ It is not compiled for wasm32, so the package WASM links no `dex-swaps` code.
 See `svm-dex/README.md` for the accepted differences from deployed v0.5.1, and
 its immutable v0.5.1 WASM corpus for the qualified offline comparison scope.
 
+### Test fixtures and their tooling
+
+Fixture tooling sits next to the fixture it produces, with a README that records
+provenance and checksums:
+
+- `spl/transfers/tests/fixtures/`: complete 2025 mainnet blocks fetched from a
+  Firehose provider, shared by the SPL, system and transfer tests;
+  `dex-swaps/fixtures/` keeps its own copy of block 350000026.
+- `spl/transfers/tests/fixtures/rpc/`: a current block with v1 messages,
+  re-encoded from public JSON-RPC by `rpc_to_pb.py` (standard library, no
+  network) with the Firehose poller's mapping, and shared by the SPL, system,
+  transfer and DEX tests. Firehose-format, not provider bytes.
+- `svm-transfers/tests/fixtures/legacy-v0.3.0/` and
+  `svm-dex/tests/fixtures/legacy-v0.5.1/`: WASM extracted from the deployed
+  release SPKGs by `extract_oracle.py`, plus frozen comparison corpora.
+
 ### Work on sink schemas
 
 - ClickHouse: `svm-*/clickhouse/schema.*.sql` and `Makefile`.

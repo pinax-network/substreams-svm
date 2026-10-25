@@ -22,3 +22,8 @@ The pinned operations were checked against Solana JSON-RPC:
 - lookup-table key sources the same way.
 
 Validation also passed on slots 350000000–350000040.
+
+[`rpc/`](rpc/README.md) holds one current block, slot 461335700 (2026-10-25),
+in which 132 of 314 transactions are v1 messages. It is Firehose-format but
+re-encoded from public JSON-RPC, not fetched from a provider; its README
+records the conversion, its checksums and its known approximation.
