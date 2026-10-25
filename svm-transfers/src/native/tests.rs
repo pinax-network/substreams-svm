@@ -4,6 +4,7 @@ use substreams::buffa::MessageField;
 use substreams_database_change::pb::sf::substreams::sink::database::v1::table_change::PrimaryKey;
 use substreams_solana::pb::sf::solana::r#type::v1 as sol;
 
+mod committed;
 mod legacy_v030;
 
 spl_transfers::block_view_buffa!(fn view, substreams_solana::pb::sf::solana::r#type::v1);
