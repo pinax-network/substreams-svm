@@ -3382,11 +3382,16 @@ version = "0.0.0"
 dependencies = [
  "common",
  "flate2",
+ "native-token",
  "proto",
+ "serde_json",
+ "sha2 0.10.9",
  "spl-token-common",
+ "spl-transfers",
  "substreams",
  "substreams-database-change",
  "substreams-solana",
+ "wasmi",
 ]
 
 [[package]]
