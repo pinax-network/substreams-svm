@@ -16,7 +16,9 @@ num_enum = "0.7.4"
 proto = { path = "../proto" }
 common = { path = "../common" }
 
-# Reuse an already computed complete-block projection without the WASM handler.
+# Used only by `native` to reuse an already computed complete-block projection;
+# never linked into the WASM module.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dex-swaps = { path = "../dex-swaps", default-features = false }
 
 [dev-dependencies]

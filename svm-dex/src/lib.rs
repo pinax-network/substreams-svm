@@ -1,3 +1,6 @@
+// Native consumers only: dex-swaps links wasm-bindgen glue that the plain
+// `wasm/rust-v1` binary type cannot instantiate, and a second `map_events`.
+#[cfg(not(target_arch = "wasm32"))]
 pub mod native;
 
 use common::db::{common_key_v2, set_clock};
