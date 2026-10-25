@@ -99,3 +99,16 @@ buffa-types = { version = "0.9.2", default-features = false, features = ["std"] 
 
 [profile.release]
 lto = true
+
+# The test-only historical WASM oracle runs released binaries in an interpreter.
+# Unoptimized, a mainnet block takes minutes; optimize only the interpreter.
+[profile.dev.package.wasmi]
+opt-level = 3
+[profile.dev.package.wasmi_core]
+opt-level = 3
+[profile.dev.package.wasmi_ir]
+opt-level = 3
+[profile.dev.package.wasmi_collections]
+opt-level = 3
+[profile.dev.package.wasmparser]
+opt-level = 3

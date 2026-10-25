@@ -21,7 +21,8 @@ This guide is a quick map for contributors and coding agents working in this mon
 - `svm-*`: aggregate DB modules by data domain.
 - `svm-*/clickhouse`: ClickHouse sink packages and schema DDL.
 - `spkg/`: local SPKG dependencies used by aggregate manifests.
-- `scripts/`: helper scripts for generating DEX boilerplate/proto glue.
+- `scripts/`: helper scripts for generating DEX boilerplate/proto glue, and the
+  CI check that plain `wasm/rust-v1` binaries import only host calls.
 
 ## 3) Fast navigation by task
 
@@ -63,9 +64,19 @@ one-off schema rewrites and hand-written Prost models must not be reused.
 
 ### Native (non-WASM) projectors
 
+- `svm-transfers::native::changes`: formats the already computed SPL/system projections through the same database-row formatter as `db_out`; see [native transfer rows](native-transfer-rows.md) for ordering, bounds and parity limits. The module is not compiled for wasm32.
 - `spl/transfers` (`spl-transfers`): storage-independent SPL transfer projection over complete blocks, callable from native Rust (Pinax Streams, Firehose Parquet). It has no protobuf or Substreams dependency: use `block_view_buffa!` for the current Solana 0.16 model, or the unchanged `block_view!` for Prost models. `block_view_buffa!` fails closed: it rejects a block containing an unsupported message version or inline configuration. `block_view_buffa_lenient!` instead reports those transactions so production Substreams modules can skip them without halting; other transactions keep their original indexes. Fixtures, coverage and validation rules are in its README.
 - `spl/transfers-substreams`: the `spl_transfers` Substreams package, a thin SDK 0.8/Buffa wrapper over `spl_transfers::project` (handler exported only on wasm32). Its output types come from the shared `proto` crate (`solana.spl.transfers.v1`).
 - `spl/token-common` uses the same `spl_transfers::decode` for amount-moving instructions, so `spl_token`, `svm-transfers` and the native projector agree. It uses the lenient adapter: unsupported message versions are logged and skipped rather than halting the stream.
+
+A native entry point in a crate that also builds a plain `wasm/rust-v1` package
+must stay behind `#[cfg(not(target_arch = "wasm32"))]`, with its projector
+dependencies under a `[target.'cfg(not(target_arch = "wasm32"))'.dependencies]`
+table. Through `solana-program`, those projectors link wasm-bindgen imports,
+which Substreams provides only to binaries declared `+wasm-bindgen-shims`.
+After the workspace WASM build, CI runs `scripts/check-wasm-imports.py`, which
+fails when any plain `wasm/rust-v1` binary imports anything outside `env` and
+`logger`.
 
 ### Native DEX projection
 

@@ -93,3 +93,5 @@ jobs:
         run: cargo test --locked -p spl-transfers -p spl-transfers-substreams -p spl-token-common -p svm-transfers
       - name: Build all Substreams WASM modules
         run: cargo build --locked --workspace --release --target wasm32-unknown-unknown
+      - name: Check plain wasm/rust-v1 binaries import only env and logger
+        run: python3 scripts/check-wasm-imports.py
