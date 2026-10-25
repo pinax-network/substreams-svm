@@ -9,7 +9,7 @@ local package.
 - `db_out` module hash: `411d6a461ae98065f767bb84afbfa2dca028b295`.
 - `dex_swaps:map_events` module hash: `bd388f2e39f5dcc237cfbdb8d6c96d9e5678c797`.
 - `dex_swaps:solana_common:blocks_without_votes` module hash: `21d352415dfa0a192ed065d22b71fbe72881408b`.
-- Frozen `corpus.json` SHA-256: `15ce78b8ddac914d9984478f4d110f4e641374734d860a04069cc306c5d4f47c`.
+- Frozen `corpus.json` SHA-256: `8d9524dcec73610d01fff588a4315d21e2ee94a77412e6f66b5d72597382f883`.
 
 | Binary | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -37,6 +37,72 @@ Database primary keys are not part of the WebSocket row contract and are exclude
 from this historical comparison. Current-wrapper keys and ordinals are compared
 separately. Field map serialization order is normalized; row order is not.
 
+That block predates the extraction changes listed in
+[Differences from deployed v0.5.1](../../../README.md#differences-from-deployed-v051),
+so its parity says nothing about current blocks. `block_cases` pins those
+differences instead.
+
+## Single-transaction block cases
+
+`block_cases` in `corpus.json` holds six Firehose-format blocks, each with one
+real transaction. Each block runs through the same three-module v0.5.1 graph and
+through `dex_swaps::project` and `native::changes`. The test asserts every
+outcome below and freezes the block bytes, the clock, the oracle event and
+DatabaseChanges bytes, and both row sets. The differences are accepted
+corrections (owner decision, 2026-10-25), not waived parity failures.
+
+| Case | Source | v0.5.1 rows | Native rows | Difference |
+| --- | --- | --- | --- | --- |
+| `mainnet_swap_transaction` | First swap transaction of block 350000026 | 1 `pumpfun_amm` | Same row | `none` |
+| `mainnet_swap_transaction_with_vote_key` | The same, plus a read-only unsigned `Vote111…` key | 0 | The same row | `native_keeps_vote_key_transaction` |
+| `rpc_2026_orca_multihop` | `aqua-orca-multihop.transaction.pb`, slot 454558265 | 2, with shifted pools and amounts | 3 correct hops | `native_orca_events_matched_to_pool` |
+| `rpc_2026_meteora_amm_temporary_account` | `knet.transaction.pb`, slot 452949660 | 0 | 1 `meteora_amm` | `native_restores_meteora_amm_leg` |
+| `rpc_2026_pumpswap_tracking_flag` | `oilinu.transaction.pb`, slot 452919823 | 0 | 1 `pumpfun_amm` | `native_restores_pumpswap_leg` |
+| `rpc_2026_damm_v2_swap2` | `privacy.transaction.pb`, slot 453196517 | 1 `raydium_cpmm` | The same row, after a new `meteora_daam` row | `native_restores_damm_v2_leg` |
+
+The vote-key case covers the `blocks_without_votes` pre-filter. That filter
+drops any transaction with a static Vote program key, not only vote
+transactions, and any sender can add the key to a swap. Native keeps such
+transactions.
+
+### Provenance of the 2026 cases
+
+No Firehose block of a 2026 slot is committed. Fetching one would need provider
+access, which this change does not use. The only 2026 inputs are the four
+`dex-swaps/fixtures` transactions. They are public `getTransaction` (JSON)
+results converted to `ConfirmedTransaction`. The conversion kept
+`meta.loaded_writable_addresses` and `meta.loaded_readonly_addresses`, but not
+`message.address_table_lookups`.
+
+A Firehose block carries the lookups of every v0 transaction that loads
+addresses; in block 350000026 all 1,444 transactions pass that count check, 161
+of them with lookups. The native projector rejects the bare RPC form with
+`LoadedAddressCount`. The real
+lookup-table accounts and indexes are not in the fixtures and cannot be
+recovered offline. These blocks are therefore Firehose-format, but not
+provider-identical.
+
+Each case wraps its transaction in a block at its real slot and UTC block time,
+with placeholder block hashes. It restores one placeholder lookup: account
+`[0xff; 32]`, with sequential indexes matching the transaction's real writable
+and readonly counts. Nothing else in the transaction changes.
+
+Neither pipeline reads lookup keys or indexes; both use the resolved address
+lists. The test checks that the restored lookup is inert:
+
+- v0.5.1 extracts byte-identical events with and without it;
+- native rows equal the current wrapper's (`dex_swaps::map_events` then
+  `svm_dex::changes`) on the unmodified transaction.
+
+These cases are evidence about extraction on real 2026 instructions and logs.
+They say nothing about Firehose source admission for those slots. Replace them
+with provider-captured blocks once such blocks are pinned.
+
+No committed fixture exercises Raydium CLMM after its 2026-05-18 `SwapEvent`
+change, or the other v0.5.2 changes without a case in the
+[package README](../../../README.md#differences-from-deployed-v051). Those
+differences rest on the v0.5.2 release validation, not on this corpus.
+
 The Wasmi 0.46 host is test-only, with 64 MiB memory, 4 MiB per input/output and
 finite fuel (one billion for small maps; five billion when input exceeds 1 MiB).
 It exposes only the required Substreams calls, traps unused JavaScript imports,
@@ -49,5 +115,6 @@ frozen corpus without changing it. For an intentional reviewed corpus change,
 rewrites it only after comparison with the current native output succeeds.
 Review the changed inputs, raw oracle outputs, normalized rows and hashes.
 
-This corpus proves the stated cases only. It does not qualify all protocol
-variants, live source admission, reorg behavior, transport or deployment.
+This corpus proves the stated cases only: formatter parity, one complete 2025
+block and the six block cases. It does not qualify all protocol variants, live
+source admission, reorg behavior, transport or deployment.

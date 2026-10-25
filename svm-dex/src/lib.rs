@@ -47,6 +47,13 @@ pub fn changes(clock: &Clock, swaps: &pb::Events) -> Result<DatabaseChanges, Err
     changes_with_limit(clock, swaps, None)
 }
 
+// Candidate rows materialized on this thread, so tests can observe how far an
+// over-budget batch got before it was rejected.
+#[cfg(test)]
+thread_local! {
+    static MATERIALIZED_ROWS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 fn changes_with_limit(clock: &Clock, swaps: &pb::Events, max_bytes: Option<usize>) -> Result<DatabaseChanges, Error> {
     if clock.timestamp.is_unset() {
         return Err(Error::msg("swap formatter requires a clock timestamp"));
@@ -60,6 +67,8 @@ fn changes_with_limit(clock: &Clock, swaps: &pb::Events, max_bytes: Option<usize
     let mut append = |tables: substreams_database_change::tables::Tables| -> Result<(), Error> {
         let mut candidate = tables.to_database_changes();
         debug_assert_eq!(candidate.table_changes.len(), 1);
+        #[cfg(test)]
+        MATERIALIZED_ROWS.with(|rows| rows.set(rows.get() + 1));
         candidate.table_changes[0].ordinal = changes.table_changes.len() as u64;
         // The one-row wrapper includes its repeated-field tag and length prefix.
         // Summing these lengths is the exact length of the final DatabaseChanges,

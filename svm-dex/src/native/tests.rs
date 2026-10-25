@@ -83,16 +83,26 @@ fn repeated_signer_fields_are_bounded_while_rows_are_materialized() {
     let mut projection = dex_swaps::project(&block).unwrap();
     projection.transactions.truncate(1);
     let tx = &mut projection.transactions[0];
-    // Under the encoded input cap, but expanding this signer list into every
-    // row would retain over 2 GiB. The formatter must stop near its input-sized
-    // output budget instead of building the whole batch and rejecting it later.
+    // Every row repeats this signer list in base58, so one row is nearly the
+    // whole input-sized budget and the batch would be over 200 times it. The
+    // formatter must stop at the budget instead of building the whole batch and
+    // rejecting it later (as 9884b99 did).
     tx.signers = vec![vec![1; 32]; 4096];
-    tx.swaps = vec![tx.swaps[0].clone(); 16_384];
+    tx.swaps = vec![tx.swaps[0].clone(); 256];
     let clock = clock(&block);
     let max_bytes = projection.clone().into_legacy().try_encoded_len().unwrap() as usize + clock.try_encoded_len().unwrap() as usize;
-    assert!(max_bytes < 16 * 1024 * 1024);
-    let error = changes(&clock, projection, 16_384, max_bytes).unwrap_err();
+    let mut one = projection.clone();
+    one.transactions[0].swaps.truncate(1);
+    let mut row = changes(&clock, one, 1, 64 * 1024 * 1024).unwrap();
+    row.table_changes.truncate(1);
+    let row_bytes = row.try_encoded_len().unwrap() as usize;
+    assert!(256 * row_bytes > 200 * max_bytes);
+    crate::MATERIALIZED_ROWS.with(|rows| rows.set(0));
+    let error = changes(&clock, projection, 256, max_bytes).unwrap_err();
     assert!(error.to_string().contains("output capacity exceeded"));
+    // Only the rows that fit, plus the one rejected candidate.
+    let materialized = crate::MATERIALIZED_ROWS.with(|rows| rows.get());
+    assert!((1..=max_bytes / row_bytes + 1).contains(&materialized), "{materialized} rows materialized");
 }
 #[test]
 fn dense_legacy_indexes_cannot_be_shifted_by_empty_duplicate_or_reordered_transactions() {

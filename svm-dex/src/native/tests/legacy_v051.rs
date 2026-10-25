@@ -3,6 +3,7 @@ use crate::pb;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use substreams_solana::base58;
 #[path = "../../../tests/support/legacy_wasm.rs"]
 mod legacy_wasm;
 
@@ -108,6 +109,210 @@ fn synthetic() -> Vec<(String, pb::Events)> {
     ));
     cases
 }
+/// One real transaction in a Firehose-format block of its own.
+struct BlockCase {
+    name: &'static str,
+    difference: &'static str,
+    source: &'static str,
+    block: sol::Block,
+    /// The unmodified RPC-derived transaction, before restoring its lookup.
+    rpc_block: Option<sol::Block>,
+}
+
+fn single_transaction_block(slot: u64, block_time: i64, tag: u8, transaction: sol::ConfirmedTransaction) -> sol::Block {
+    sol::Block {
+        slot,
+        parent_slot: slot - 1,
+        blockhash: base58::encode([tag; 32]),
+        previous_blockhash: base58::encode([tag + 1; 32]),
+        block_time: sol::UnixTimestamp { timestamp: block_time }.into(),
+        transactions: vec![transaction],
+        ..Default::default()
+    }
+}
+
+fn block_cases() -> Vec<BlockCase> {
+    let mut cases = Vec::new();
+    // `getTransaction` (JSON) fixtures from 2026 keep the resolved loaded
+    // addresses but not the message's address table lookups, which a Firehose
+    // block always carries with them and native validation counts. Restore one
+    // placeholder lookup with the same index counts. Neither pipeline reads
+    // lookup keys or indexes; the test checks that it changes no output.
+    for (name, difference, source, slot, block_time, bytes) in [
+        (
+            "rpc_2026_orca_multihop",
+            "native_orca_events_matched_to_pool",
+            "dex-swaps/fixtures/aqua-orca-multihop.transaction.pb",
+            454_558_265,
+            1_791_466_115,
+            include_bytes!("../../../../dex-swaps/fixtures/aqua-orca-multihop.transaction.pb").as_slice(),
+        ),
+        (
+            "rpc_2026_meteora_amm_temporary_account",
+            "native_restores_meteora_amm_leg",
+            "dex-swaps/fixtures/knet.transaction.pb",
+            452_949_660,
+            1_791_034_822,
+            include_bytes!("../../../../dex-swaps/fixtures/knet.transaction.pb").as_slice(),
+        ),
+        (
+            "rpc_2026_pumpswap_tracking_flag",
+            "native_restores_pumpswap_leg",
+            "dex-swaps/fixtures/oilinu.transaction.pb",
+            452_919_823,
+            1_791_026_854,
+            include_bytes!("../../../../dex-swaps/fixtures/oilinu.transaction.pb").as_slice(),
+        ),
+        (
+            "rpc_2026_damm_v2_swap2",
+            "native_restores_damm_v2_leg",
+            "dex-swaps/fixtures/privacy.transaction.pb",
+            453_196_517,
+            1_791_100_854,
+            include_bytes!("../../../../dex-swaps/fixtures/privacy.transaction.pb").as_slice(),
+        ),
+    ] {
+        let original = sol::ConfirmedTransaction::decode_from_slice(bytes).unwrap();
+        let mut restored = original.clone();
+        let meta = restored.meta.as_option().unwrap();
+        let (writable, readonly) = (meta.loaded_writable_addresses.len() as u8, meta.loaded_readonly_addresses.len() as u8);
+        let message = restored.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+        assert!(message.versioned && message.address_table_lookups.is_empty());
+        message.address_table_lookups.push(sol::MessageAddressTableLookup {
+            account_key: vec![255; 32],
+            writable_indexes: (0..writable).collect(),
+            readonly_indexes: (writable..writable + readonly).collect(),
+        });
+        let tag = 16 + 2 * cases.len() as u8;
+        cases.push(BlockCase {
+            name,
+            difference,
+            source,
+            block: single_transaction_block(slot, block_time, tag, restored),
+            rpc_block: Some(single_transaction_block(slot, block_time, tag, original)),
+        });
+    }
+    // v0.5.1 drops any transaction with a static Vote key before extraction.
+    // Native keeps it: append the key, read-only and unsigned, to a real swap.
+    let source = fixture();
+    let projection = dex_swaps::project(&source).unwrap();
+    let index = projection
+        .transactions
+        .iter()
+        .map(|tx| tx.transaction_index as usize)
+        .find(|&index| source.transactions[index].transaction.message.address_table_lookups.is_empty())
+        .unwrap();
+    let mut block = source.clone();
+    block.transactions = vec![source.transactions[index].clone()];
+    cases.push(BlockCase {
+        name: "mainnet_swap_transaction",
+        difference: "none",
+        source: "dex-swaps/fixtures/solana-mainnet-350000026.pb.gz",
+        block: block.clone(),
+        rpc_block: None,
+    });
+    let tx = &mut block.transactions[0];
+    let message = tx.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+    message
+        .account_keys
+        .push(base58::decode("Vote111111111111111111111111111111111111111").unwrap());
+    message.header.as_option_mut().unwrap().num_readonly_unsigned_accounts += 1;
+    let meta = tx.meta.as_option_mut().unwrap();
+    meta.pre_balances.push(1);
+    meta.post_balances.push(1);
+    cases.push(BlockCase {
+        name: "mainnet_swap_transaction_with_vote_key",
+        difference: "native_keeps_vote_key_transaction",
+        source: "dex-swaps/fixtures/solana-mainnet-350000026.pb.gz",
+        block,
+        rpc_block: None,
+    });
+    cases
+}
+
+/// `protocol pool input->output` for each row, in order.
+fn legs(rows: &Value) -> Vec<String> {
+    rows.as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            let field = |name: &str| row["fields"][name].as_str().unwrap().to_string();
+            format!(
+                "{} {} {}->{}",
+                field("protocol"),
+                field("amm_pool"),
+                field("input_amount"),
+                field("output_amount")
+            )
+        })
+        .collect()
+}
+
+/// Accepted differences, (v0.5.1 legs, native legs). Native is the correction.
+fn expected_legs(name: &str) -> (Vec<&'static str>, Vec<&'static str>) {
+    match name {
+        // v0.5.1 shifts the first two events onto the next pools and drops
+        // the real third hop (#224).
+        "rpc_2026_orca_multihop" => (
+            vec![
+                "orca_whirlpool GNzK4LP1nbfFcMNwB1zG4htCkToXjKYn5mn5yVKvaExm 273199007->53097662110",
+                "orca_whirlpool 9TT3NbWogWjbQh7b3s1hfcqYF7VJHmg8uNcXDjtPRnh4 53097662110->2214641291345",
+            ],
+            vec![
+                "orca_whirlpool FVB6knS78TJJswCrBhhB2T3cUKBQ8XyRvqwsjDq3oWwE 273199007->53097662110",
+                "orca_whirlpool GNzK4LP1nbfFcMNwB1zG4htCkToXjKYn5mn5yVKvaExm 53097662110->2214641291345",
+                "orca_whirlpool 9TT3NbWogWjbQh7b3s1hfcqYF7VJHmg8uNcXDjtPRnh4 2170348465518->276039217",
+            ],
+        ),
+        // The WSOL destination is created and closed in the transaction (#223).
+        "rpc_2026_meteora_amm_temporary_account" => (
+            vec![],
+            vec!["meteora_amm B1JkXQH1yvTQtRavmAStwoy2Pu54SsjLqfWphL9VwpGu 999999999343109->773859208"],
+        ),
+        // PumpSwap `buy` with the volume-tracking flag (#223).
+        "rpc_2026_pumpswap_tracking_flag" => (vec![], vec!["pumpfun_amm 9Bvmg9W8yFv3bKAWeCBNWwKtCNYi8BgKqGKTDtsrRPVx 55229629->576275924281"]),
+        // DAMM v2 `swap2` with its mode byte and `EvtSwap2` (v0.5.2, #223);
+        // the Raydium leg is unchanged.
+        "rpc_2026_damm_v2_swap2" => (
+            vec!["raydium_cpmm fWSGGqSA1NvHGiGNHj5tQSD4Vmw5cy8TEa2FUd1yE6h 826289746015025->131738879"],
+            vec![
+                "meteora_daam 2YwxAtr1XjYHm7VkraEVj4P4n7YL4m7NDsLjf4pUhZwX 1087808068->15609208729942477",
+                "raydium_cpmm fWSGGqSA1NvHGiGNHj5tQSD4Vmw5cy8TEa2FUd1yE6h 826289746015025->131738879",
+            ],
+        ),
+        "mainnet_swap_transaction_with_vote_key" => (vec![], vec!["pumpfun_amm FtXG452GP7jfZYNG5W6ryTE3WLJxv8CMPFyWW3Ls1Xru 17560685865->32143636"]),
+        other => panic!("unreviewed block case: {other}"),
+    }
+}
+
+fn block_case(oracle: &legacy_wasm::Oracle, case: &BlockCase) -> Value {
+    let bytes = case.block.encode_to_vec();
+    let clock = clock(&case.block);
+    let old_events = oracle.events(&bytes).expect("historical block projector panicked");
+    let old = oracle.format(&clock.encode_to_vec(), &old_events).unwrap();
+    let oracle_rows = rows(DatabaseChanges::decode_from_slice(&old).unwrap());
+    let native_rows = rows(changes(&clock, dex_swaps::project(&case.block).unwrap(), 100_000, 64 * 1024 * 1024).unwrap());
+    if let Some(original) = &case.rpc_block {
+        // The restored lookup is inert: v0.5.1 extracts the same events without
+        // it, and native rows equal the current wrapper's on the original.
+        assert_eq!(oracle.events(&original.encode_to_vec()).unwrap(), old_events, "{}", case.name);
+        let current = crate::changes(&clock, &dex_swaps::map_events(original.clone()).unwrap()).unwrap();
+        assert_eq!(rows(current), native_rows, "{}", case.name);
+    }
+    let equal = native_rows == oracle_rows;
+    assert_eq!(equal, case.difference == "none", "unclassified block difference: {}", case.name);
+    if !equal {
+        let (old_legs, new_legs) = expected_legs(case.name);
+        assert_eq!(legs(&oracle_rows), old_legs, "{}", case.name);
+        assert_eq!(legs(&native_rows), new_legs, "{}", case.name);
+    }
+    json!({"name":case.name,"difference":case.difference,"source":case.source,
+        "reconstructed":case.rpc_block.as_ref().map(|_| "address_table_lookups"),
+        "block_sha256":hex(&Sha256::digest(&bytes)),"block_hex":hex(&bytes),"clock_hex":hex(&clock.encode_to_vec()),
+        "oracle_events_hex":hex(&old_events),"oracle_database_changes_hex":hex(&old),
+        "oracle_rows":oracle_rows,"native_rows":native_rows,"equal_rows":equal})
+}
+
 #[test]
 fn released_v051_formatter_and_complete_block_parity() {
     let oracle = legacy_wasm::Oracle::new();
@@ -135,11 +340,16 @@ fn released_v051_formatter_and_complete_block_parity() {
     let empty_events = oracle.events(&empty.encode_to_vec()).unwrap();
     let empty_rows = oracle.format(&clock.encode_to_vec(), &empty_events).unwrap();
     assert_eq!(rows(DatabaseChanges::decode_from_slice(&empty_rows).unwrap()), json!([]));
+    let cases = block_cases();
+    let block_cases: Vec<_> = cases.iter().map(|case| block_case(&oracle, case)).collect();
+    // The vote-key copy keeps exactly the rows of the unmodified transaction.
+    assert_eq!(block_cases[5]["native_rows"], block_cases[4]["native_rows"]);
     let result = json!({"schema_version":1,"package_sha256":"0774a2330e9d070d55f1e39d0b0c057415aaafec7df94602ac21671020c5bf46",
         "clock_hex":hex(&clock.encode_to_vec()),"cases":corpus,
         "complete_block":{"fixture":"dex-swaps/fixtures/solana-mainnet-350000026.pb.gz",
         "block_sha256":hex(&Sha256::digest(&bytes)),"oracle_events_hex":hex(&old_events),
-        "oracle_database_changes_hex":hex(&old),"rows":expected}});
+        "oracle_database_changes_hex":hex(&old),"rows":expected},
+        "block_cases":block_cases});
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy-v0.5.1/corpus.json");
     if std::env::var_os("UPDATE_SVM_DEX_V051_CORPUS").as_deref() == Some(std::ffi::OsStr::new("1")) {
         std::fs::write(&path, format!("{}\n", serde_json::to_string_pretty(&result).unwrap())).unwrap();
@@ -164,4 +374,25 @@ fn released_v051_formatter_and_complete_block_parity() {
         rows(DatabaseChanges::decode_from_slice(&unhex(frozen["complete_block"]["oracle_database_changes_hex"].as_str().unwrap())).unwrap()),
         result["complete_block"]["rows"]
     );
+    let (saved, current) = (frozen["block_cases"].as_array().unwrap(), result["block_cases"].as_array().unwrap());
+    assert_eq!(saved.len(), current.len());
+    for (saved, current) in saved.iter().zip(current) {
+        for field in [
+            "name",
+            "difference",
+            "source",
+            "reconstructed",
+            "block_sha256",
+            "block_hex",
+            "clock_hex",
+            "oracle_events_hex",
+            "oracle_rows",
+            "native_rows",
+            "equal_rows",
+        ] {
+            assert_eq!(saved[field], current[field], "{} {field}", current["name"]);
+        }
+        let saved_rows = rows(DatabaseChanges::decode_from_slice(&unhex(saved["oracle_database_changes_hex"].as_str().unwrap())).unwrap());
+        assert_eq!(saved_rows, current["oracle_rows"]);
+    }
 }

@@ -83,8 +83,9 @@ per-protocol evidence counts on the pinned blocks.
 `svm-dex::native::changes` consumes that complete projection after typed consumers
 have borrowed it and formats the unchanged legacy `swaps` rows. It validates
 clock, count and encoded-size bounds without another block decode or extraction.
-See `svm-dex/README.md` and its immutable v0.5.1 WASM corpus for the qualified
-offline comparison scope.
+It is not compiled for wasm32, so the package WASM links no `dex-swaps` code.
+See `svm-dex/README.md` for the accepted differences from deployed v0.5.1, and
+its immutable v0.5.1 WASM corpus for the qualified offline comparison scope.
 
 ### Work on sink schemas
 
