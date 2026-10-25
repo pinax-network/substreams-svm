@@ -184,19 +184,24 @@ fn system_rows_preserve_dense_indexes_and_nonrow_operations() {
 
 #[test]
 fn mainnet_spl_rows_match_current_wrapper_and_system_rows_are_present() {
-    let mut bytes = Vec::new();
-    flate2::read::GzDecoder::new(include_bytes!("../../../spl/transfers/tests/fixtures/solana-mainnet-350000026.pb.gz").as_slice())
-        .read_to_end(&mut bytes)
-        .unwrap();
-    let block = sol::Block::decode_from_slice(&bytes).unwrap();
-    let raw = spl_token_common::process_block(&block, |id| id == spl_transfers::TOKEN_PROGRAM_ID || id == spl_transfers::TOKEN_2022_PROGRAM_ID).unwrap();
-    let mut expected = crate::changes(&clock(&block), &raw, &system::Events::default()).unwrap();
-    expected.table_changes.retain(|row| row.table == "spl_transfer");
-    let mut actual = formatted(&block);
-    assert!(actual.table_changes.iter().any(|row| row.table == "system_transfer"));
-    actual.table_changes.retain(|row| row.table == "spl_transfer");
-    assert!(!actual.table_changes.is_empty());
-    assert_eq!(canonical(actual), canonical(expected));
+    // A 2025 provider block, then a current block in which 132 of 314
+    // transactions are v1 messages.
+    for fixture in [
+        include_bytes!("../../../spl/transfers/tests/fixtures/solana-mainnet-350000026.pb.gz").as_slice(),
+        include_bytes!("../../../spl/transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz").as_slice(),
+    ] {
+        let mut bytes = Vec::new();
+        flate2::read::GzDecoder::new(fixture).read_to_end(&mut bytes).unwrap();
+        let block = sol::Block::decode_from_slice(&bytes).unwrap();
+        let raw = spl_token_common::process_block(&block, |id| id == spl_transfers::TOKEN_PROGRAM_ID || id == spl_transfers::TOKEN_2022_PROGRAM_ID).unwrap();
+        let mut expected = crate::changes(&clock(&block), &raw, &system::Events::default()).unwrap();
+        expected.table_changes.retain(|row| row.table == "spl_transfer");
+        let mut actual = formatted(&block);
+        assert!(actual.table_changes.iter().any(|row| row.table == "system_transfer"));
+        actual.table_changes.retain(|row| row.table == "spl_transfer");
+        assert!(!actual.table_changes.is_empty());
+        assert_eq!(canonical(actual), canonical(expected), "{}", block.slot);
+    }
 }
 
 #[test]

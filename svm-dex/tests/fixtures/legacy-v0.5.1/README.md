@@ -103,6 +103,35 @@ change, or the other v0.5.2 changes without a case in the
 [package README](../../../README.md#differences-from-deployed-v051). Those
 differences rest on the v0.5.2 release validation, not on this corpus.
 
+## Current block with v1 messages
+
+`released_v051_current_block_with_v1_messages` runs the same three-module graph
+on [slot 461335700](../../../../spl/transfers/tests/fixtures/rpc/README.md)
+(2026-10-25), in which 132 of 314 transactions are v1 messages. That block is
+re-encoded from public JSON-RPC with the Firehose poller's mapping, not
+provider bytes. v0.5.1 never reads the message version, so it decodes v1
+transactions as it decodes v0 ones without lookups. Native used to reject the
+whole block.
+
+The test compares rows by transaction, because every added row shifts the
+ordinals after it. In each transaction, native keeps every v0.5.1 row, in
+order, and only adds rows. Each added row is classified, and any other
+difference fails the test:
+
+| Difference | Rows | Evidence checked |
+| --- | ---: | --- |
+| `none` | 29 | All v0.5.1 rows |
+| `native_restores_pumpswap_leg` | 19 | In each successful transaction, one PumpSwap `buy`/`buy_exact_quote_in` with the `track_volume` flag per added row |
+| `native_restores_damm_v2_leg` | 11 | v0.5.1 has no `meteora_daam` row in the block |
+| `native_restores_raydium_clmm_leg` | 1 | v0.5.1 has no `raydium_clmm` row in the block |
+| `native_restores_pumpfun_bonding_curve_leg` | 1 | One Pump.fun `buy` with the `track_volume` flag, or `buy_exact_sol_in`, per added row |
+
+That is 29 v0.5.1 rows and 61 native rows. v1 transactions have rows on both
+sides: 8 in v0.5.1 and 10 natively, the 2 extra being DAMM v2 legs. The block's
+classes are the documented corrections in the
+[package README](../../../README.md#differences-from-deployed-v051). This test
+does not freeze its outputs in `corpus.json`; it reruns the pinned WASM.
+
 The Wasmi 0.46 host is test-only, with 64 MiB memory, 4 MiB per input/output and
 finite fuel (one billion for small maps; five billion when input exceeds 1 MiB).
 It exposes only the required Substreams calls, traps unused JavaScript imports,
@@ -116,5 +145,5 @@ rewrites it only after comparison with the current native output succeeds.
 Review the changed inputs, raw oracle outputs, normalized rows and hashes.
 
 This corpus proves the stated cases only: formatter parity, one complete 2025
-block and the six block cases. It does not qualify all protocol variants, live
+block, the six block cases and the classified current block. It does not qualify all protocol variants, live
 source admission, reorg behavior, transport or deployment.
