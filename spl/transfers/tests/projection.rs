@@ -431,7 +431,7 @@ fn block_identity_is_validated() {
 
 #[test]
 fn every_real_fixture_validates() {
-    for fixture in [BLOCK_349019252, BLOCK_350000009, BLOCK_350000010, BLOCK_350000026] {
+    for fixture in [BLOCK_349019252, BLOCK_350000009, BLOCK_350000010, BLOCK_350000026, BLOCK_461335700] {
         assert_eq!(validate_block(&view_block(&decode_block(fixture))), Ok(()));
     }
 }

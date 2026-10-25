@@ -21,3 +21,22 @@ package and schema live in [`clickhouse/`](clickhouse/).
   transfers are kept in `spl_transfer`. The `transfers` view still filters on
   `amount > 0 AND mint IS NOT NULL`, which does not exclude empty mints.
 - `system_transfer` (native SOL) keeps its previous dense indexes.
+
+## Solana v1 messages
+
+About 40% of mainnet transactions have been v1 messages since October 2026:
+the compute budget is carried inline, and there are no address table lookups.
+Deployed v0.3.0 decodes them, because it never reads the message version. The
+native formatter (`native::changes`, see
+[native transfer rows](../docs/native-transfer-rows.md)) and the current
+`spl_token` v0.4.0 input accept them as well; later versions and a v1 message
+with lookups still fail closed. The
+[v0.3.0 oracle](tests/fixtures/legacy-v0.3.0/README.md#current-block-with-v1-messages)
+compares both pipelines on a current block with 132 v1 transactions.
+
+> **Warning.** A release cut from main before v1 support would have regressed
+> against deployed v0.3.0: its `spl_token` v0.4.0 input skipped v1
+> transactions and so dropped their SPL rows, 59 of 296 on that block (v0.3.0
+> writes 55 for them). The
+> committed `spkg/spl-token-v0.4.0.spkg` this manifest imports was packed before
+> v1 support; repack it from the current tree before releasing v0.4.0.

@@ -281,16 +281,29 @@ mod tests {
         let mut missing = valid.clone();
         missing.transactions[0].meta = MessageField::none();
         assert!(matches!(project(&missing), Err(ProjectError::InvalidBlock(_))));
-        let mut version = valid;
-        version.transactions[0]
-            .transaction
-            .as_option_mut()
-            .unwrap()
-            .message
-            .as_option_mut()
-            .unwrap()
-            .version = Some(1);
-        assert!(matches!(project(&version), Err(ProjectError::UnsupportedMessage(_))));
+        // v1 messages carry an inline compute budget and no address table
+        // lookups; later versions and v1 lookups still fail closed.
+        for (version, lookups, supported) in [(1, false, true), (1, true, false), (2, false, false)] {
+            let mut block = valid.clone();
+            let message = block.transactions[0].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+            message.versioned = true;
+            message.version = Some(version);
+            message.transaction_config = sol::TransactionConfig {
+                compute_unit_limit: Some(200_000),
+                ..Default::default()
+            }
+            .into();
+            if lookups {
+                message.address_table_lookups.push(Default::default());
+            }
+            match project(&block) {
+                Ok(projection) => {
+                    assert!(supported);
+                    assert_eq!(projection.operations.len(), project(&valid).unwrap().operations.len());
+                }
+                Err(error) => assert!(!supported && matches!(error, ProjectError::UnsupportedMessage(_))),
+            }
+        }
     }
 
     #[test]
@@ -339,26 +352,47 @@ mod tests {
     }
 
     #[test]
-    fn pinned_mainnet_block_uses_the_same_decoder_and_keeps_spl_available() {
+    fn pinned_mainnet_blocks_use_the_same_decoder_and_keep_spl_available() {
         use std::io::Read;
-        let mut bytes = Vec::new();
-        flate2::read::GzDecoder::new(include_bytes!("../../../spl/transfers/tests/fixtures/solana-mainnet-350000026.pb.gz").as_slice())
-            .read_to_end(&mut bytes)
-            .unwrap();
-        let block = sol::Block::decode_from_slice(&bytes).unwrap();
-        let result = project(&block).unwrap();
-        assert!(!result.operations.is_empty());
-        let expected: Vec<_> = block
-            .transactions()
-            .filter_map(|tx| process_transaction(tx.clone()))
-            .flat_map(|tx| tx.instructions)
-            .collect();
-        assert_eq!(
-            result.operations.iter().map(|op| &op.instruction).collect::<Vec<_>>(),
-            expected.iter().collect::<Vec<_>>()
-        );
-        spl_transfers::block_view_buffa!(fn view, substreams_solana::pb::sf::solana::r#type::v1);
-        let spl = spl_transfers::project(&view(&block).unwrap(), spl_transfers::Coverage::ALL).unwrap();
-        assert!(!spl.operations.is_empty());
+        // 2025 provider block, then a current block with v1 messages.
+        for (fixture, operations, v1_operations) in [
+            (
+                include_bytes!("../../../spl/transfers/tests/fixtures/solana-mainnet-350000026.pb.gz").as_slice(),
+                None,
+                0,
+            ),
+            (
+                include_bytes!("../../../spl/transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz").as_slice(),
+                Some(191),
+                35,
+            ),
+        ] {
+            let mut bytes = Vec::new();
+            flate2::read::GzDecoder::new(fixture).read_to_end(&mut bytes).unwrap();
+            let block = sol::Block::decode_from_slice(&bytes).unwrap();
+            let result = project(&block).unwrap();
+            assert!(!result.operations.is_empty());
+            if let Some(operations) = operations {
+                assert_eq!(result.operations.len(), operations);
+            }
+            let v1 = result
+                .operations
+                .iter()
+                .filter(|op| op.transaction.transaction.message.version == Some(1))
+                .count();
+            assert_eq!(v1, v1_operations);
+            let expected: Vec<_> = block
+                .transactions()
+                .filter_map(|tx| process_transaction(tx.clone()))
+                .flat_map(|tx| tx.instructions)
+                .collect();
+            assert_eq!(
+                result.operations.iter().map(|op| &op.instruction).collect::<Vec<_>>(),
+                expected.iter().collect::<Vec<_>>()
+            );
+            spl_transfers::block_view_buffa!(fn view, substreams_solana::pb::sf::solana::r#type::v1);
+            let spl = spl_transfers::project(&view(&block).unwrap(), spl_transfers::Coverage::ALL).unwrap();
+            assert!(!spl.operations.is_empty());
+        }
     }
 }

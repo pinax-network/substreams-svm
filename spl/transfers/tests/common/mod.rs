@@ -20,6 +20,11 @@ pub const BLOCK_350000010: &[u8] = include_bytes!("../fixtures/solana-mainnet-35
 /// Slot 350000026: a mint from a loaded address (776), a temporary account
 /// (1282), extra accounts (1337) and an inner self transfer (1335).
 pub const BLOCK_350000026: &[u8] = include_bytes!("../fixtures/solana-mainnet-350000026.pb.gz");
+/// Slot 461335700 (2026-10-25, after Alpenglow): 132 of its 314 transactions
+/// are v1 messages. Re-encoded from public JSON-RPC `getBlock` with the
+/// Firehose poller's mapping, not fetched from a provider; see
+/// fixtures/rpc/README.md.
+pub const BLOCK_461335700: &[u8] = include_bytes!("../fixtures/rpc/solana-mainnet-461335700.pb.gz");
 
 pub fn gunzip(fixture: &[u8]) -> Vec<u8> {
     let mut bytes = Vec::new();

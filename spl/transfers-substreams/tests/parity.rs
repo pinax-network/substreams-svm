@@ -134,16 +134,24 @@ fn unknown_coverage_flag_is_rejected() {
 #[test]
 fn unsupported_message_version_is_rejected_before_projection() {
     let mut block = decode_block(FIXTURES[1]);
-    block.transactions[1366]
-        .transaction
-        .as_option_mut()
-        .unwrap()
-        .message
-        .as_option_mut()
-        .unwrap()
-        .version = Some(1);
+    let message = block.transactions[1366].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+    message.versioned = true;
+    message.version = Some(2);
     let error = map_events_impl("all", &block).unwrap_err();
     let error = error.downcast_ref::<spl_transfers::UnsupportedMessage>().expect("typed adapter error");
     assert_eq!(error.transaction_index, 1366);
-    assert_eq!(error.version, Some(1));
+    assert_eq!(error.version, Some(2));
+}
+
+#[test]
+fn current_block_with_v1_messages_is_projected() {
+    let block = decode_block(include_bytes!("../../transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz"));
+    assert_parity(&block);
+    let events = map_events_impl("all", &block).unwrap();
+    let from_v1 = events
+        .operations
+        .iter()
+        .filter(|record| block.transactions[record.transaction_index as usize].transaction.message.version == Some(1))
+        .count();
+    assert_eq!((events.operations.len(), from_v1), (296, 59));
 }

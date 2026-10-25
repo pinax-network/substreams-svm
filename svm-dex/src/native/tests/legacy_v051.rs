@@ -396,3 +396,112 @@ fn released_v051_formatter_and_complete_block_parity() {
         assert_eq!(saved_rows, current["oracle_rows"]);
     }
 }
+
+/// Buy instructions with the trailing `track_volume` flag (or Pump.fun's
+/// `buy_exact_sol_in`), which v0.5.1 cannot decode.
+fn current_buys(tx: &sol::ConfirmedTransaction, program: &str, flagged: [[u8; 8]; 2], any_length: Option<[u8; 8]>) -> usize {
+    tx.walk_instructions()
+        .filter(|instruction| base58::encode(instruction.program_id().0) == program && instruction.data().len() >= 8)
+        .filter(|instruction| {
+            let discriminator: [u8; 8] = instruction.data()[..8].try_into().unwrap();
+            (instruction.data().len() == 25 && flagged.contains(&discriminator)) || any_length == Some(discriminator)
+        })
+        .count()
+}
+
+/// A current block after Alpenglow, in which 132 of 314 transactions are v1
+/// messages. v0.5.1 decodes them without reading their version; native used to
+/// reject the whole block on the first one. Every difference is a documented
+/// v0.5.1 extraction loss: native keeps each v0.5.1 row of a transaction, in
+/// order, and only adds rows.
+#[test]
+fn released_v051_current_block_with_v1_messages() {
+    const PUMPSWAP: &str = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA";
+    const PUMPFUN: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+    const BUY: [u8; 8] = [102, 6, 61, 18, 1, 218, 235, 234];
+    const BUY_EXACT_QUOTE_IN: [u8; 8] = [198, 46, 21, 82, 180, 217, 232, 112];
+    const BUY_EXACT_SOL_IN: [u8; 8] = [56, 252, 116, 8, 158, 223, 205, 95];
+    let oracle = legacy_wasm::Oracle::new();
+    let mut bytes = Vec::new();
+    GzDecoder::new(include_bytes!("../../../../spl/transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz").as_slice())
+        .read_to_end(&mut bytes)
+        .unwrap();
+    let block = sol::Block::decode_from_slice(&bytes).unwrap();
+    let clock = clock(&block);
+    let old_events = oracle.events(&bytes).expect("historical block projector panicked");
+    let oracle_rows = rows(DatabaseChanges::decode_from_slice(&oracle.format(&clock.encode_to_vec(), &old_events).unwrap()).unwrap());
+    let native_rows = rows(changes(&clock, dex_swaps::project(&block).unwrap(), 100_000, 64 * 1024 * 1024).unwrap());
+    // Row fields by transaction; ordinals shift after every added row.
+    let by_signature = |rows: &Value| {
+        let mut transactions: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+        for row in rows.as_array().unwrap() {
+            let signature = row["fields"]["signature"].as_str().unwrap().to_string();
+            transactions.entry(signature).or_default().push(row["fields"].clone());
+        }
+        transactions
+    };
+    let (oracle_transactions, native_transactions) = (by_signature(&oracle_rows), by_signature(&native_rows));
+    let mut differences: BTreeMap<&str, usize> = BTreeMap::new();
+    let mut v1_rows = [0, 0];
+    for tx in &block.transactions {
+        let signature = base58::encode(&tx.transaction.signatures[0]);
+        let old = oracle_transactions.get(&signature).cloned().unwrap_or_default();
+        let mut added = native_transactions.get(&signature).cloned().unwrap_or_default();
+        if tx.transaction.message.version == Some(1) {
+            v1_rows[0] += old.len();
+            v1_rows[1] += added.len();
+        }
+        let mut cursor = 0;
+        for row in &old {
+            cursor += added[cursor..]
+                .iter()
+                .position(|candidate| candidate == row)
+                .expect("native keeps every v0.5.1 row in order");
+            added.remove(cursor);
+        }
+        *differences.entry("none").or_default() += old.len();
+        let mut buys = [0, 0];
+        for row in &added {
+            let difference = match row["protocol"].as_str().unwrap() {
+                // v0.5.1 decodes no DAMM v2 `EvtSwap2` (after 2025-12-26) and
+                // no CLMM `SwapEvent` (after 2026-05-18); see the README.
+                "meteora_daam" => "native_restores_damm_v2_leg",
+                "raydium_clmm" => "native_restores_raydium_clmm_leg",
+                "pumpfun_amm" => {
+                    buys[0] += 1;
+                    "native_restores_pumpswap_leg"
+                }
+                "pumpfun" => {
+                    buys[1] += 1;
+                    "native_restores_pumpfun_bonding_curve_leg"
+                }
+                other => panic!("unclassified native {other} row in {signature}"),
+            };
+            *differences.entry(difference).or_default() += 1;
+        }
+        if tx.meta.err.is_unset() {
+            // Each restored PumpSwap or Pump.fun row is one current-format buy.
+            let current = [
+                current_buys(tx, PUMPSWAP, [BUY, BUY_EXACT_QUOTE_IN], None),
+                current_buys(tx, PUMPFUN, [BUY, BUY_EXACT_SOL_IN], Some(BUY_EXACT_SOL_IN)),
+            ];
+            assert_eq!(buys, current, "{signature}");
+        }
+    }
+    for protocol in ["meteora_daam", "raydium_clmm"] {
+        assert!(oracle_rows.as_array().unwrap().iter().all(|row| row["fields"]["protocol"] != protocol));
+    }
+    assert_eq!(
+        differences,
+        BTreeMap::from([
+            ("none", 29),
+            ("native_restores_damm_v2_leg", 11),
+            ("native_restores_pumpfun_bonding_curve_leg", 1),
+            ("native_restores_pumpswap_leg", 19),
+            ("native_restores_raydium_clmm_leg", 1),
+        ])
+    );
+    assert_eq!((oracle_rows.as_array().unwrap().len(), native_rows.as_array().unwrap().len()), (29, 61));
+    // Rows of v1 transactions, on both sides; native adds two DAMM v2 legs.
+    assert_eq!(v1_rows, [8, 10]);
+}

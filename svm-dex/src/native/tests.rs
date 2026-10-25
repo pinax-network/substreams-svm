@@ -46,6 +46,18 @@ fn complete_block_matches_wrapper_rows_keys_ordinals_and_unqualified_summaries()
     assert_eq!(canonical(actual), canonical(expected));
 }
 #[test]
+fn current_block_with_v1_messages_matches_wrapper_rows_keys_and_ordinals() {
+    let mut bytes = Vec::new();
+    GzDecoder::new(include_bytes!("../../../spl/transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz").as_slice())
+        .read_to_end(&mut bytes)
+        .unwrap();
+    let block = sol::Block::decode_from_slice(&bytes).unwrap();
+    let expected = crate::changes(&clock(&block), &dex_swaps::map_events(block.clone()).unwrap()).unwrap();
+    let actual = changes(&clock(&block), dex_swaps::project(&block).unwrap(), 100_000, 64 * 1024 * 1024).unwrap();
+    assert_eq!(actual.table_changes.iter().filter(|row| row.table == "swaps").count(), 61);
+    assert_eq!(canonical(actual), canonical(expected));
+}
+#[test]
 fn clock_count_and_exact_encoded_output_bounds_fail_atomically() {
     let block = fixture();
     let projection = dex_swaps::project(&block).unwrap();

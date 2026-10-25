@@ -162,12 +162,48 @@ fn malformed_input_is_an_error_not_a_panic() {
     assert!(error.contains("instruction 0") && error.contains("transfer_checked"), "{error}");
 }
 
-/// Marks transaction `index` as an explicit v1 message, which the shared
-/// decoder does not cover.
-fn mark_v1(block: &mut Block, index: usize) {
+/// Marks transaction `index` as an explicit message of `version`.
+fn mark_version(block: &mut Block, index: usize, version: u32) {
     let message = block.transactions[index].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
     message.versioned = true;
-    message.version = Some(1);
+    message.version = Some(version);
+}
+
+/// Marks transaction `index` as an explicit v2 message, which the shared
+/// decoder does not cover.
+fn mark_v2(block: &mut Block, index: usize) {
+    mark_version(block, index, 2);
+}
+
+#[test]
+fn v1_messages_are_processed_not_skipped() {
+    let block = decode_block(FIXTURES[1]);
+    let expected = process_block(&block, is_spl_token_program).unwrap();
+    let mut v1 = block.clone();
+    mark_version(&mut v1, 1366, 1);
+    for configured in [false, true] {
+        if configured {
+            v1.transactions[1366]
+                .transaction
+                .as_option_mut()
+                .unwrap()
+                .message
+                .as_option_mut()
+                .unwrap()
+                .transaction_config = MessageField::some(Default::default());
+        }
+        assert_eq!(process_block(&v1, is_spl_token_program).unwrap(), expected);
+    }
+
+    // A current block: about 40% of its transactions are v1 messages.
+    let block = decode_block(include_bytes!("../../transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz"));
+    let events = process_block(&block, is_spl_token_program).unwrap();
+    let rows = module_rows(&events);
+    assert_eq!(rows, projector_rows(&block));
+    let is_v1 = |index: u32| block.transactions[index as usize].transaction.message.version == Some(1);
+    let v1_transactions = events.transactions.iter().filter(|transaction| is_v1(transaction.transaction_index)).count();
+    let v1_rows = rows.iter().filter(|row| is_v1(row.position.0)).count();
+    assert_eq!((events.transactions.len(), v1_transactions, rows.len(), v1_rows), (109, 22, 296, 59));
 }
 
 #[test]
@@ -176,8 +212,8 @@ fn unsupported_messages_are_skipped_without_halting() {
     let expected = process_block(&block, is_spl_token_program).unwrap();
     assert!(expected.transactions.iter().any(|transaction| transaction.transaction_index == 1366));
 
-    let mut v1 = block.clone();
-    mark_v1(&mut v1, 1366);
+    let mut v2 = block.clone();
+    mark_v2(&mut v2, 1366);
     let mut configured = block.clone();
     configured.transactions[1366]
         .transaction
@@ -188,7 +224,7 @@ fn unsupported_messages_are_skipped_without_halting() {
         .unwrap()
         .transaction_config = MessageField::some(Default::default());
 
-    for block in [v1, configured] {
+    for block in [v2, configured] {
         let events = process_block(&block, is_spl_token_program).unwrap();
         // Only the unsupported transaction is missing; every other transaction
         // keeps its original index and content.
@@ -206,7 +242,7 @@ fn unsupported_messages_are_skipped_without_halting() {
 fn unsupported_messages_are_not_validated_but_others_still_are() {
     // A malformed unsupported transaction is skipped rather than rejected.
     let mut block = decode_block(FIXTURES[1]);
-    mark_v1(&mut block, 1366);
+    mark_v2(&mut block, 1366);
     block.transactions[1366]
         .transaction
         .as_option_mut()
@@ -220,7 +256,7 @@ fn unsupported_messages_are_not_validated_but_others_still_are() {
 
     // Malformed supported transactions still fail the block.
     let mut block = decode_block(FIXTURES[1]);
-    mark_v1(&mut block, 0);
+    mark_v2(&mut block, 0);
     block.transactions[1366]
         .transaction
         .as_option_mut()

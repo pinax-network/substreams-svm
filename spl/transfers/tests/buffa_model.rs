@@ -22,7 +22,7 @@ fn assert_equivalent(prost: &pb::Block, buffa: &buffa_pb::Block) {
 
 #[test]
 fn every_pinned_block_has_identical_borrowed_fields_and_projection() {
-    for fixture in [BLOCK_349019252, BLOCK_350000009, BLOCK_350000010, BLOCK_350000026] {
+    for fixture in [BLOCK_349019252, BLOCK_350000009, BLOCK_350000010, BLOCK_350000026, BLOCK_461335700] {
         let prost = decode_block(fixture);
         let buffa = buffa_block(fixture);
         assert_equivalent(&prost, &buffa);
@@ -107,33 +107,50 @@ fn optional_clock_fields_distinguish_absent_from_present_zero() {
 }
 
 #[test]
-fn only_legacy_and_v0_message_shapes_are_admitted() {
+fn only_legacy_v0_and_v1_message_shapes_are_admitted() {
+    fn message(block: &mut buffa_pb::Block) -> &mut buffa_pb::Message {
+        block.transactions[1366].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap()
+    }
     let original = buffa_block(BLOCK_350000009);
-    for (version, versioned) in [(None, false), (None, true), (Some(0), true)] {
+    assert!(message(&mut original.clone()).address_table_lookups.is_empty());
+    for (version, versioned, inline_configuration) in [
+        (None, false, false),
+        (None, true, false),
+        (Some(0), true, false),
+        (Some(1), true, false),
+        (Some(1), true, true),
+    ] {
         let mut block = original.clone();
-        let message = block.transactions[1366].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+        let message = message(&mut block);
         message.version = version;
         message.versioned = versioned;
-        assert!(view_buffa_block(&block).is_ok());
+        if inline_configuration {
+            message.transaction_config = MessageField::some(buffa_pb::TransactionConfig::default());
+        }
+        assert!(view_buffa_block(&block).is_ok(), "{version:?} {versioned} {inline_configuration}");
     }
-    for (version, versioned, inline_configuration) in [
-        (Some(1), true, false),
-        (Some(u32::MAX), true, false),
-        (Some(0), false, false),
-        (None, false, true),
-        (Some(0), true, true),
+    for (version, versioned, inline_configuration, address_table_lookups) in [
+        (Some(2), true, false, 0),
+        (Some(2), true, true, 0),
+        (Some(u32::MAX), true, false, 0),
+        (Some(0), false, false, 0),
+        (Some(1), false, false, 0),
+        (Some(1), true, false, 1),
+        (Some(1), true, true, 2),
+        (None, false, true, 0),
+        (Some(0), true, true, 0),
     ] {
         for failed in [false, true] {
             let mut block = original.clone();
-            let transaction = &mut block.transactions[1366];
-            let message = transaction.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+            let message = message(&mut block);
             message.version = version;
             message.versioned = versioned;
             if inline_configuration {
                 message.transaction_config = MessageField::some(buffa_pb::TransactionConfig::default());
             }
+            message.address_table_lookups = vec![buffa_pb::MessageAddressTableLookup::default(); address_table_lookups];
             if failed {
-                transaction.meta.as_option_mut().unwrap().err = MessageField::some(buffa_pb::TransactionError::default());
+                block.transactions[1366].meta.as_option_mut().unwrap().err = MessageField::some(buffa_pb::TransactionError::default());
             }
             assert_eq!(
                 view_buffa_block(&block).unwrap_err(),
@@ -141,7 +158,8 @@ fn only_legacy_and_v0_message_shapes_are_admitted() {
                     transaction_index: 1366,
                     version,
                     versioned,
-                    inline_configuration
+                    inline_configuration,
+                    address_table_lookups,
                 }
             );
         }
@@ -158,7 +176,7 @@ fn lenient_adapter_reports_unsupported_messages_without_dropping_positions() {
     let mut block = original.clone();
     for index in [3, 1366] {
         let message = block.transactions[index].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
-        message.version = Some(1);
+        message.version = Some(2);
         message.versioned = true;
     }
     // Malformed, but only inside an unsupported transaction.
@@ -183,4 +201,57 @@ fn lenient_adapter_reports_unsupported_messages_without_dropping_positions() {
     block.transactions[1365].transaction.as_option_mut().unwrap().signatures.clear();
     let (view, unsupported) = view_buffa_block_lenient(&block);
     assert!(spl_transfers::validate_block_except(&view, &unsupported).is_err());
+}
+
+#[test]
+fn current_block_with_v1_messages_is_admitted_and_projected() {
+    let bytes = gunzip(BLOCK_461335700);
+    let block = buffa_pb::Block::decode_from_slice(&bytes).unwrap();
+    // The repository's Buffa model reads every field: it re-encodes byte for byte.
+    assert_eq!(block.encode_to_vec(), bytes);
+    let message = |index: usize| block.transactions[index].transaction.message.as_option().unwrap();
+    let v1: Vec<_> = (0..block.transactions.len()).filter(|&index| message(index).version == Some(1)).collect();
+    let v0 = (0..block.transactions.len()).filter(|&index| message(index).version == Some(0)).count();
+    assert_eq!((block.transactions.len(), v0, v1.len()), (314, 100, 132));
+    for &index in &v1 {
+        let message = message(index);
+        assert!(message.versioned && message.address_table_lookups.is_empty() && message.transaction_config.is_set());
+    }
+
+    let view = view_buffa_block(&block).unwrap();
+    assert!(view_buffa_block_lenient(&block).1.is_empty());
+    let projection = project(&view, Coverage::ALL).unwrap();
+    let from_v1 = projection
+        .operations
+        .iter()
+        .filter(|operation| v1.contains(&(operation.transaction_index as usize)))
+        .count();
+    assert_eq!((projection.operations.len(), from_v1), (296, 59));
+
+    // Newer versions and a v1 message with address table lookups still fail closed.
+    let mut newer = block.clone();
+    newer.transactions[v1[0]]
+        .transaction
+        .as_option_mut()
+        .unwrap()
+        .message
+        .as_option_mut()
+        .unwrap()
+        .version = Some(2);
+    let error = view_buffa_block(&newer).unwrap_err();
+    assert_eq!((error.transaction_index, error.version), (v1[0], Some(2)));
+    let mut lookups = block.clone();
+    lookups.transactions[v1[1]]
+        .transaction
+        .as_option_mut()
+        .unwrap()
+        .message
+        .as_option_mut()
+        .unwrap()
+        .address_table_lookups
+        .push(buffa_pb::MessageAddressTableLookup::default());
+    let error = view_buffa_block(&lookups).unwrap_err();
+    assert_eq!((error.transaction_index, error.version, error.address_table_lookups), (v1[1], Some(1), 1));
+    let (_, unsupported) = view_buffa_block_lenient(&lookups);
+    assert_eq!(unsupported, [error]);
 }

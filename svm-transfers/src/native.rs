@@ -116,10 +116,16 @@ fn events(spl: &Projection, system: &SystemProjection<'_>) -> Result<(spl::Event
         let account_count = transaction.resolved_accounts().len();
         let has_balances = account_count > 0 && (meta.pre_balances.len() == account_count || meta.post_balances.len() == account_count);
         // Its input dropped Vote-key transactions, so they take no slot here
-        // either. Their system instructions are still kept (and then take one),
-        // which the legacy package never emitted.
+        // either. Their system rows are still kept (and then take one), which
+        // the legacy package never emitted; instructions without a row, such
+        // as a create-account or a self transfer, do not.
         let vote_key = transaction.transaction.message.account_keys.iter().any(|key| key.as_slice() == VOTE_PROGRAM);
-        if !instructions.is_empty() || (has_balances && !vote_key) {
+        let takes_slot = if vote_key {
+            instructions.iter().any(emits_system_row)
+        } else {
+            !instructions.is_empty() || has_balances
+        };
+        if takes_slot {
             system_events.transactions.push(system::Transaction {
                 signature: signature()?.clone(),
                 fee_payer: get_fee_payer(transaction).unwrap_or_default(),
@@ -135,6 +141,17 @@ fn events(spl: &Projection, system: &SystemProjection<'_>) -> Result<(spl::Event
         return Err(Error::msg("transfer projection is out of order or refers to a missing transaction"));
     }
     Ok((spl_events, system_events))
+}
+
+/// Whether the system formatter (`native_token::process_events`) writes a row
+/// for this instruction. Create-account instructions and self transfers only
+/// consume their dense instruction index.
+fn emits_system_row(instruction: &system::Instruction) -> bool {
+    match &instruction.instruction {
+        Some(system::instruction::Instruction::Transfer(data)) => data.source != data.destination,
+        Some(system::instruction::Instruction::TransferWithSeed(_)) | Some(system::instruction::Instruction::WithdrawNonceAccount(_)) => true,
+        _ => false,
+    }
 }
 
 fn spl_instruction(op: &Operation) -> spl::Instruction {

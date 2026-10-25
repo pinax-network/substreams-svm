@@ -106,6 +106,55 @@ fn cases() -> Vec<(&'static str, sol::Block)> {
         meta.post_balances.push(100);
         cases.push((name, block(vec![tx])));
     }
+    // About 40% of current mainnet transactions are v1 messages: an inline
+    // compute budget and no address table lookups. v0.3.0 ignores both fields.
+    let v1 = |mut tx: sol::ConfirmedTransaction| {
+        let message = tx.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+        message.versioned = true;
+        message.version = Some(1);
+        message.transaction_config = sol::TransactionConfig {
+            priority_fee: Some(1_000),
+            compute_unit_limit: Some(200_000),
+            loaded_accounts_data_size_limit: Some(65_536),
+            heap_size: None,
+        }
+        .into();
+        tx
+    };
+    cases.push(("v1_message", block(vec![v1(transaction(12, vec![token(12, 42, 5), transfer(43, 1)]))])));
+    let mut tx = transaction(12, vec![token(12, 42, 5), transfer(43, 1)]);
+    let message = tx.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+    message.versioned = true;
+    message.version = Some(2);
+    cases.push(("v2_message", block(vec![tx])));
+    // A v1 message cannot load addresses; one with a lookup is not covered.
+    let mut tx = v1(transaction(12, vec![token(12, 42, 5), transfer(43, 7)]));
+    let message = tx.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+    message.address_table_lookups.push(sol::MessageAddressTableLookup {
+        account_key: vec![9; 32],
+        writable_indexes: vec![0],
+        readonly_indexes: vec![],
+    });
+    let meta = tx.meta.as_option_mut().unwrap();
+    meta.loaded_writable_addresses.push(vec![8; 32]);
+    meta.pre_balances.push(100);
+    meta.post_balances.push(100);
+    cases.push(("v1_message_with_address_table_lookups", block(vec![tx])));
+    // A Vote-key transaction whose system instructions write no row (here a
+    // funded create-account) takes no slot, so later keys match v0.3.0's.
+    let mut tx = transaction(11, vec![create_account(42, 3)]);
+    tx.transaction
+        .as_option_mut()
+        .unwrap()
+        .message
+        .as_option_mut()
+        .unwrap()
+        .account_keys
+        .push(VOTE_PROGRAM.to_vec());
+    let meta = tx.meta.as_option_mut().unwrap();
+    meta.pre_balances.push(100);
+    meta.post_balances.push(100);
+    cases.push(("vote_key_create_account_then_transfer", block(vec![tx, transaction(12, vec![transfer(43, 1)])])));
     cases
 }
 
@@ -145,6 +194,7 @@ fn hex(bytes: &[u8]) -> String {
 fn published_v030_boundary_corpus() {
     let oracle = legacy_wasm::Oracle::new();
     let mut corpus = Vec::new();
+    let mut outcomes = [0; 3]; // equal, accepted difference, native rejection
     for (name, block) in cases() {
         let bytes = block.encode_to_vec();
         let clock = clock(&block);
@@ -173,11 +223,18 @@ fn published_v030_boundary_corpus() {
             "spl_self" => "native_keeps_self_transfer",
             "spl_unchecked" | "spl_cpi" => "native_unchecked_destination_and_unknown_mint",
             "malformed_system" => "native_rejects_malformed_system_instruction",
-            "unsupported_message_version" => "native_rejects_unsupported_message_version",
+            "unsupported_message_version" | "v2_message" | "v1_message_with_address_table_lookups" => "native_rejects_unsupported_message_version",
             "vote_key_transfers" | "vote_instruction_and_transfers" => "native_keeps_vote_key_transaction",
             _ => "none",
         };
         assert_eq!(equal, difference == "none", "unclassified package difference: {name}");
+        outcomes[if equal {
+            0
+        } else if native.is_ok() {
+            1
+        } else {
+            2
+        }] += 1;
         if equal {
             // Hidden keys are not in the corpus, but dense system slots follow
             // the legacy vote-filtered input wherever the rows agree.
@@ -205,6 +262,19 @@ fn published_v030_boundary_corpus() {
             }
             "malformed_system" => assert_eq!(native.as_ref().unwrap_err(), &"invalid_system"),
             "unsupported_message_version" => assert_eq!(native.as_ref().unwrap_err(), &"unsupported_message"),
+            "v2_message" | "v1_message_with_address_table_lookups" => {
+                assert_eq!(native.as_ref().unwrap_err(), &"unsupported_message");
+                assert_eq!(legacy_rows.as_ref().unwrap().len(), 2);
+            }
+            "v1_message" => {
+                let tables: Vec<_> = native.as_ref().unwrap().iter().map(|row| row["@table"].as_str()).collect();
+                assert_eq!(tables, ["spl_transfer", "system_transfer"]);
+            }
+            "vote_key_create_account_then_transfer" => {
+                let keys = system_keys(native_changes.as_ref().unwrap());
+                assert_eq!(keys.len(), 1);
+                assert_eq!(keys[0].as_ref().unwrap()["transaction_index"], "0");
+            }
             _ => {}
         }
         println!(
@@ -220,6 +290,7 @@ fn published_v030_boundary_corpus() {
             "equal_database_row_fields":equal, "difference":difference,
         }));
     }
+    assert_eq!(outcomes, [19, 6, 4]);
     let value = json!({"schema_version":1,"package_sha256":"bc04960b7b18223e124a3ad5c3384817df0f66003a1ea4b989b9a80047e5b05e", "cases":corpus});
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy-v0.3.0/corpus.json");
     if std::env::var_os("UPDATE_SVM_LEGACY_CORPUS").as_deref() == Some(std::ffi::OsStr::new("1")) {
@@ -324,21 +395,75 @@ fn published_v030_pinned_mainnet_blocks() {
             },
         ),
     ] {
-        let mut bytes = Vec::new();
-        flate2::read::GzDecoder::new(fixture).read_to_end(&mut bytes).unwrap();
-        let block = sol::Block::decode_from_slice(&bytes).unwrap();
-        let clock = clock(&block);
-        let legacy = DatabaseChanges::decode_from_slice(&oracle.database(&clock.encode_to_vec(), &bytes).unwrap()).unwrap();
-        let spl = spl_transfers::project(&view(&block).unwrap(), Coverage::ALL).unwrap();
-        let system = native_token::project(&block).unwrap();
-        let native = changes(&clock, &spl, &system, 100_000, 64 * 1024 * 1024).unwrap();
-        // System rows, their order and their dense primary keys are unchanged.
-        let (legacy_keys, native_keys) = (system_keys(&legacy), system_keys(&native));
-        let (legacy_rows, native_rows) = (rows(legacy), rows(native));
-        let system_only = |rows: &[BTreeMap<String, String>]| rows.iter().filter(|row| row["@table"] == "system_transfer").cloned().collect::<Vec<_>>();
-        assert_eq!(system_only(&native_rows), system_only(&legacy_rows), "{}", block.slot);
-        assert_eq!(native_keys, legacy_keys, "{}", block.slot);
-        assert_eq!(native_keys.len(), system_rows, "{}", block.slot);
+        let (block, legacy_rows, native_rows) = complete_block(&oracle, fixture, system_rows);
         assert_eq!(spl_differences(&legacy_rows, &native_rows), expected, "{}", block.slot);
     }
+}
+
+type Rows = Vec<BTreeMap<String, String>>;
+
+/// Runs one complete block through v0.3.0 and the native projectors, and
+/// checks that system rows, their order and their dense primary keys are
+/// unchanged.
+fn complete_block(oracle: &legacy_wasm::Oracle, fixture: &[u8], system_rows: usize) -> (sol::Block, Rows, Rows) {
+    let mut bytes = Vec::new();
+    flate2::read::GzDecoder::new(fixture).read_to_end(&mut bytes).unwrap();
+    let block = sol::Block::decode_from_slice(&bytes).unwrap();
+    let clock = clock(&block);
+    let legacy = DatabaseChanges::decode_from_slice(&oracle.database(&clock.encode_to_vec(), &bytes).unwrap()).unwrap();
+    let spl = spl_transfers::project(&view(&block).unwrap(), Coverage::ALL).unwrap();
+    let system = native_token::project(&block).unwrap();
+    let native = changes(&clock, &spl, &system, 100_000, 64 * 1024 * 1024).unwrap();
+    let (legacy_keys, native_keys) = (system_keys(&legacy), system_keys(&native));
+    let (legacy_rows, native_rows) = (rows(legacy), rows(native));
+    let system_only = |rows: &[BTreeMap<String, String>]| rows.iter().filter(|row| row["@table"] == "system_transfer").cloned().collect::<Vec<_>>();
+    assert_eq!(system_only(&native_rows), system_only(&legacy_rows), "{}", block.slot);
+    assert_eq!(native_keys, legacy_keys, "{}", block.slot);
+    assert_eq!(native_keys.len(), system_rows, "{}", block.slot);
+    (block, legacy_rows, native_rows)
+}
+
+/// A current block after Alpenglow, in which 132 of 314 transactions are v1
+/// messages. v0.3.0 decodes them without reading their version; native used
+/// to reject the whole block on the first one.
+#[test]
+fn published_v030_current_block_with_v1_messages() {
+    let oracle = legacy_wasm::Oracle::new();
+    let (block, legacy_rows, native_rows) = complete_block(
+        &oracle,
+        include_bytes!("../../../../spl/transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz"),
+        104,
+    );
+    assert_eq!(
+        spl_differences(&legacy_rows, &native_rows),
+        SplDifferences {
+            equal: 270,
+            zero: 4,
+            self_transfer: 0,
+            unchecked_mapping: 18,
+            unchecked_source_is_authority: 4,
+            unexplained: 0,
+        }
+    );
+    let v1: std::collections::BTreeSet<_> = block
+        .transactions
+        .iter()
+        .filter(|tx| tx.transaction.message.version == Some(1))
+        .map(|tx| base58::encode(&tx.transaction.signatures[0]))
+        .collect();
+    assert_eq!(v1.len(), 132);
+    let from_v1 = |rows: &[BTreeMap<String, String>]| rows.iter().filter(|row| v1.contains(&row["signature"])).cloned().collect::<Rows>();
+    let (legacy_v1, native_v1) = (from_v1(&legacy_rows), from_v1(&native_rows));
+    let tables = |rows: &[BTreeMap<String, String>]| ["spl_transfer", "system_transfer"].map(|table| rows.iter().filter(|row| row["@table"] == table).count());
+    // Rows of v1 transactions, on both sides.
+    assert_eq!((tables(&legacy_v1), tables(&native_v1)), ([55, 27], [59, 27]));
+    assert_eq!(
+        spl_differences(&legacy_v1, &native_v1),
+        SplDifferences {
+            equal: 48,
+            zero: 4,
+            unchecked_mapping: 7,
+            ..Default::default()
+        }
+    );
 }
