@@ -261,3 +261,55 @@ fn identity_coverage_and_capacity_mismatch_fail_closed_and_empty_blocks_stay_emp
     assert!(changes(&clock, &spl, &system, 100, 64 * 1024 * 1024).is_err());
     assert!(formatted(&super::tests::block(vec![])).table_changes.is_empty());
 }
+
+#[test]
+fn vote_key_transactions_take_a_system_slot_only_with_system_instructions() {
+    assert_eq!(base58::encode(VOTE_PROGRAM), "Vote111111111111111111111111111111111111111");
+    let vote_key = |mut tx: sol::ConfirmedTransaction| {
+        tx.transaction
+            .as_option_mut()
+            .unwrap()
+            .message
+            .as_option_mut()
+            .unwrap()
+            .account_keys
+            .push(VOTE_PROGRAM.to_vec());
+        let meta = tx.meta.as_option_mut().unwrap();
+        meta.pre_balances.push(100);
+        meta.post_balances.push(100);
+        tx
+    };
+    let block = block(vec![
+        vote_key(transaction(10, vec![])),                // dropped by the legacy input: no slot
+        transaction(11, vec![transfer(41, 1)]),           // slot 0, as in the legacy package
+        vote_key(transaction(12, vec![transfer(42, 1)])), // kept natively, so it takes slot 1
+        transaction(13, vec![transfer(43, 1)]),           // slot 2; the legacy package uses 1
+    ]);
+    let slots: Vec<_> = formatted(&block)
+        .table_changes
+        .iter()
+        .filter(|row| row.table == "system_transfer")
+        .map(|row| {
+            let Some(PrimaryKey::CompositePk(key)) = &row.primary_key else {
+                panic!("composite key")
+            };
+            let lamports = row.fields.iter().find(|field| field.name == "lamports").unwrap();
+            (lamports.value.clone(), key.keys["transaction_index"].clone())
+        })
+        .collect();
+    assert_eq!(slots, [("41".into(), "0".into()), ("42".into(), "1".into()), ("43".into(), "2".into())]);
+}
+
+#[test]
+fn hand_built_projection_without_a_signature_is_an_error() {
+    let block = block(vec![transaction(10, vec![])]);
+    let spl = spl_transfers::project(&view(&block).unwrap(), Coverage::ALL).unwrap();
+    let mut unsigned = block.clone();
+    unsigned.transactions[0].transaction.as_option_mut().unwrap().signatures.clear();
+    let system = native_token::Projection {
+        block: &unsigned,
+        operations: Vec::new(),
+    };
+    let error = changes(&clock(&block), &spl, &system, 100, 64 * 1024 * 1024).unwrap_err();
+    assert_eq!(error.to_string(), "missing transaction signature");
+}

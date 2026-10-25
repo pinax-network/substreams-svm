@@ -8,6 +8,12 @@ use substreams::{buffa::Message, errors::Error, pb::substreams::Clock};
 use substreams_database_change::pb::sf::substreams::sink::database::v1::DatabaseChanges;
 use substreams_solana::base58;
 
+/// `Vote111111111111111111111111111111111111111`. The legacy system input,
+/// `blocks_without_votes`, drops every transaction with this static account key.
+const VOTE_PROGRAM: [u8; 32] = [
+    7, 97, 72, 29, 53, 116, 116, 187, 124, 77, 118, 36, 235, 211, 189, 179, 216, 53, 94, 115, 209, 16, 67, 252, 13, 163, 83, 128, 0, 0, 0, 0,
+];
+
 /// Format complete `Coverage::ALL` SPL and system projections of the same block.
 ///
 /// Inputs must come directly from the shared projectors, without filtering or
@@ -69,6 +75,13 @@ fn events(spl: &Projection, system: &SystemProjection<'_>) -> Result<(spl::Event
             continue;
         }
         let meta = transaction.meta.as_option().ok_or_else(|| Error::msg("missing transaction metadata"))?;
+        let signature = || {
+            transaction
+                .transaction
+                .signatures
+                .first()
+                .ok_or_else(|| Error::msg("missing transaction signature"))
+        };
         let mut instructions = Vec::new();
         while spl_ops.peek().is_some_and(|op| op.transaction_index as usize == index) {
             let op = spl_ops.next().unwrap();
@@ -80,7 +93,7 @@ fn events(spl: &Projection, system: &SystemProjection<'_>) -> Result<(spl::Event
         if !instructions.is_empty() {
             spl_events.transactions.push(spl::Transaction {
                 transaction_index: index as u32,
-                signature: transaction.hash().to_vec(),
+                signature: signature()?.clone(),
                 fee_payer: get_fee_payer(transaction).unwrap_or_default(),
                 signers: get_signers(transaction).unwrap_or_default(),
                 fee: meta.fee,
@@ -102,9 +115,13 @@ fn events(spl: &Projection, system: &SystemProjection<'_>) -> Result<(spl::Event
         // transfer rows. Preserve that slot without copying all balances.
         let account_count = transaction.resolved_accounts().len();
         let has_balances = account_count > 0 && (meta.pre_balances.len() == account_count || meta.post_balances.len() == account_count);
-        if !instructions.is_empty() || has_balances {
+        // Its input dropped Vote-key transactions, so they take no slot here
+        // either. Their system instructions are still kept (and then take one),
+        // which the legacy package never emitted.
+        let vote_key = transaction.transaction.message.account_keys.iter().any(|key| key.as_slice() == VOTE_PROGRAM);
+        if !instructions.is_empty() || (has_balances && !vote_key) {
             system_events.transactions.push(system::Transaction {
-                signature: transaction.hash().to_vec(),
+                signature: signature()?.clone(),
                 fee_payer: get_fee_payer(transaction).unwrap_or_default(),
                 signers: get_signers(transaction).unwrap_or_default(),
                 fee: meta.fee,
