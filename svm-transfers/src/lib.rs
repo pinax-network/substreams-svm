@@ -1,3 +1,6 @@
+// Native consumers only: its projector dependencies link wasm-bindgen glue
+// that the plain `wasm/rust-v1` binary type cannot instantiate.
+#[cfg(not(target_arch = "wasm32"))]
 pub mod native;
 mod native_token;
 mod spl_token;

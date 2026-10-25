@@ -14,6 +14,9 @@ substreams-database-change = { workspace = true }
 
 proto = { path = "../proto" }
 common = { path = "../common" }
+
+# Used only by `native`; never linked into the WASM module.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 spl-transfers = { path = "../spl/transfers" }
 native-token = { path = "../native/system", default-features = false }
 
