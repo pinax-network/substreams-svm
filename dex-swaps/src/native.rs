@@ -211,7 +211,7 @@ impl fmt::Display for ProjectError {
         match self {
             Self::Capacity => f.write_str("native swap projection capacity exceeded"),
             Self::InvalidBlock(_) => f.write_str("invalid complete Solana block"),
-            Self::UnsupportedMessage(_) => f.write_str("unsupported Solana transaction version or inline configuration"),
+            Self::UnsupportedMessage(error) => write!(f, "unsupported Solana message shape: {error}"),
         }
     }
 }

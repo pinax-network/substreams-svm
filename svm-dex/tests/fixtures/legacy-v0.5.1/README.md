@@ -98,10 +98,13 @@ These cases are evidence about extraction on real 2026 instructions and logs.
 They say nothing about Firehose source admission for those slots. Replace them
 with provider-captured blocks once such blocks are pinned.
 
-No committed fixture exercises Raydium CLMM after its 2026-05-18 `SwapEvent`
-change, or the other v0.5.2 changes without a case in the
-[package README](../../../README.md#differences-from-deployed-v051). Those
-differences rest on the v0.5.2 release validation, not on this corpus.
+Only the [current block](#current-block-with-v1-messages) exercises Raydium
+CLMM after its 2026-05-18 `SwapEvent` change: one row, classified by rule
+rather than by its event bytes. `SwapRouterBaseIn` and the other v0.5.2 changes
+without a case in the
+[package README](../../../README.md#differences-from-deployed-v051) have no
+fixture. Those differences rest on the v0.5.2 release validation, not on this
+corpus.
 
 ## Current block with v1 messages
 
