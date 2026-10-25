@@ -1,6 +1,11 @@
+// Native consumers only: dex-swaps links wasm-bindgen glue that the plain
+// `wasm/rust-v1` binary type cannot instantiate, and a second `map_events`.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod native;
+
 use common::db::{common_key_v2, set_clock};
 use proto::pb::dex::swaps::v1 as pb;
-use substreams::{errors::Error, pb::substreams::Clock};
+use substreams::{buffa::Message, errors::Error, pb::substreams::Clock};
 use substreams_database_change::pb::sf::substreams::sink::database::v1::DatabaseChanges;
 use substreams_solana::base58;
 
@@ -30,20 +35,67 @@ fn protocol_slug(protocol: substreams::buffa::EnumValue<pb::Protocol>) -> &'stat
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[substreams::handlers::map]
-pub fn db_out(mut clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Error> {
-    let mut tables = substreams_database_change::tables::Tables::new();
+pub fn db_out(clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Error> {
+    changes(&clock, &swaps)
+}
+
+/// The unchanged legacy formatter, without decoding or a WASM host call.
+/// Native consumers should prefer `native::changes` for clock and size checks.
+pub fn changes(clock: &Clock, swaps: &pb::Events) -> Result<DatabaseChanges, Error> {
+    changes_with_limit(clock, swaps, None)
+}
+
+// Candidate rows materialized on this thread, so tests can observe how far an
+// over-budget batch got before it was rejected.
+#[cfg(test)]
+thread_local! {
+    static MATERIALIZED_ROWS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn changes_with_limit(clock: &Clock, swaps: &pb::Events, max_bytes: Option<usize>) -> Result<DatabaseChanges, Error> {
+    if clock.timestamp.is_unset() {
+        return Err(Error::msg("swap formatter requires a clock timestamp"));
+    }
+    let mut changes = DatabaseChanges::default();
+    let mut encoded_bytes = 0usize;
+
+    // Materialize at most one candidate row beyond the accepted output budget.
+    // In particular, transaction fields must not expand across every swap in a
+    // Tables map before the native caller gets a chance to check their size.
+    let mut append = |tables: substreams_database_change::tables::Tables| -> Result<(), Error> {
+        let mut candidate = tables.to_database_changes();
+        debug_assert_eq!(candidate.table_changes.len(), 1);
+        #[cfg(test)]
+        MATERIALIZED_ROWS.with(|rows| rows.set(rows.get() + 1));
+        candidate.table_changes[0].ordinal = changes.table_changes.len() as u64;
+        // The one-row wrapper includes its repeated-field tag and length prefix.
+        // Summing these lengths is the exact length of the final DatabaseChanges,
+        // including ordinal varint growth (not just the contained row lengths).
+        encoded_bytes = encoded_bytes
+            .checked_add(candidate.try_encoded_len()? as usize)
+            .ok_or_else(|| Error::msg("swap formatting output capacity exceeded"))?;
+        if max_bytes.is_some_and(|limit| encoded_bytes > limit) {
+            return Err(Error::msg("swap formatting output capacity exceeded"));
+        }
+        changes.table_changes.append(&mut candidate.table_changes);
+        Ok(())
+    };
 
     for (transaction_index, transaction) in swaps.transactions.iter().enumerate() {
+        // Encode once per transaction. Each row still owns the exact legacy
+        // field, but only rows within the output budget can accumulate.
+        let signers_raw = transaction.signers.iter().map(base58::encode).collect::<Vec<_>>().join(",");
         for (instruction_index, swap) in transaction.swaps.iter().enumerate() {
-            let key: [(&str, String); 3] = common_key_v2(&clock, transaction_index, instruction_index);
-            let signers_raw = transaction.signers.iter().map(base58::encode).collect::<Vec<_>>().join(",");
+            let mut tables = substreams_database_change::tables::Tables::new();
+            let key: [(&str, String); 3] = common_key_v2(clock, transaction_index, instruction_index);
             let row = tables
                 .create_row("swaps", key)
                 // Transaction
                 .set("signature", base58::encode(&transaction.signature))
                 .set("fee_payer", base58::encode(&transaction.fee_payer))
-                .set("signers_raw", signers_raw)
+                .set("signers_raw", &signers_raw)
                 .set("fee", transaction.fee)
                 .set("compute_units_consumed", transaction.compute_units_consumed)
                 .set("program_id", base58::encode(&swap.program_id))
@@ -58,15 +110,18 @@ pub fn db_out(mut clock: Clock, swaps: pb::Events) -> Result<DatabaseChanges, Er
                 .set("output_mint", base58::encode(&swap.output_mint))
                 .set("output_amount", swap.output_amount);
 
-            set_clock(&clock, row);
+            set_clock(clock, row);
+            append(tables)?;
         }
     }
 
-    if tables.all_row_count() > 0 {
-        set_clock(&clock, tables.create_row("blocks", [("block_num", clock.number.to_string())]));
+    if swaps.transactions.iter().any(|transaction| !transaction.swaps.is_empty()) {
+        let mut tables = substreams_database_change::tables::Tables::new();
+        set_clock(clock, tables.create_row("blocks", [("block_num", clock.number.to_string())]));
+        append(tables)?;
     }
 
-    Ok(tables.to_database_changes())
+    Ok(changes)
 }
 
 #[cfg(test)]

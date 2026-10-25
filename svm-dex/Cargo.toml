@@ -15,3 +15,14 @@ num_enum = "0.7.4"
 
 proto = { path = "../proto" }
 common = { path = "../common" }
+
+# Used only by `native` to reuse an already computed complete-block projection;
+# never linked into the WASM module.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+dex-swaps = { path = "../dex-swaps", default-features = false }
+
+[dev-dependencies]
+flate2 = "1"
+sha2 = "0.10"
+serde_json = "1"
+wasmi = { version = "=0.46.0", default-features = false, features = ["std"] }

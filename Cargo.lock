@@ -3331,11 +3331,16 @@ name = "svm-dex"
 version = "0.0.0"
 dependencies = [
  "common",
+ "dex-swaps",
+ "flate2",
  "num_enum",
  "proto",
+ "serde_json",
+ "sha2 0.10.9",
  "substreams",
  "substreams-database-change",
  "substreams-solana",
+ "wasmi",
 ]
 
 [[package]]

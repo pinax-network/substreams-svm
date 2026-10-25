@@ -87,6 +87,13 @@ jobs:
           assert versions == {"0.8.0"}, versions
           assert not re.search(r"(?<![\w-])prost(?:-types)? v", graph)
           PY
+      - name: Keep the historical DEX interpreter out of native runtime dependencies
+        run: |
+          cargo tree --locked -p svm-dex --edges normal,build > "$RUNNER_TEMP/svm-dex-runtime-dependencies.txt"
+          if grep -Eq '(^|[[:space:]])wasmi([_-][[:alnum:]_-]+)? v' "$RUNNER_TEMP/svm-dex-runtime-dependencies.txt"; then
+            cat "$RUNNER_TEMP/svm-dex-runtime-dependencies.txt"
+            exit 1
+          fi
       - name: Test native token decoding and account and DEX database output
         run: cargo test --locked -p common -p native-token -p svm-accounts -p svm-dex
       - name: Test the SPL transfer projector, parser and transfer database output
