@@ -84,6 +84,19 @@ fn transfer(lamports: u64, destination: u8) -> sol::CompiledInstruction {
     }
 }
 
+/// `SystemInstruction::CreateAccount`, which the formatter writes no row for.
+fn create_account(lamports: u64, new_account: u8) -> sol::CompiledInstruction {
+    let mut data = 0u32.to_le_bytes().to_vec();
+    data.extend(lamports.to_le_bytes());
+    data.extend(100u64.to_le_bytes());
+    data.extend([9; 32]);
+    sol::CompiledInstruction {
+        program_id_index: 4,
+        accounts: vec![0, new_account],
+        data,
+    }
+}
+
 fn token(tag: u8, amount: u64, program: u32) -> sol::CompiledInstruction {
     let checked = [12, 14, 15].contains(&tag);
     let mut data = vec![tag];
@@ -142,28 +155,12 @@ fn full_spl_rows_match_wrapper_with_zero_self_mint_burn_and_cpi() {
 
 #[test]
 fn system_rows_preserve_dense_indexes_and_nonrow_operations() {
-    let mut create = 0u32.to_le_bytes().to_vec();
-    create.extend(42u64.to_le_bytes());
-    create.extend(100u64.to_le_bytes());
-    create.extend([9; 32]);
     let mut failed = transaction(11, vec![transfer(1, 1)]);
     failed.meta.as_option_mut().unwrap().err = sol::TransactionError::default().into();
     let block = block(vec![
         transaction(10, vec![]), // balance-only: reserves index zero
         failed,                  // omitted entirely
-        transaction(
-            12,
-            vec![
-                sol::CompiledInstruction {
-                    program_id_index: 4,
-                    accounts: vec![0, 1],
-                    data: create,
-                },
-                transfer(42, 0),
-                transfer(0, 1),
-                transfer(u64::MAX, 1),
-            ],
-        ),
+        transaction(12, vec![create_account(42, 1), transfer(42, 0), transfer(0, 1), transfer(u64::MAX, 1)]),
     ]);
     let changes = formatted(&block);
     assert_eq!(changes.table_changes.len(), 2); // one transfer, one block
@@ -263,7 +260,7 @@ fn identity_coverage_and_capacity_mismatch_fail_closed_and_empty_blocks_stay_emp
 }
 
 #[test]
-fn vote_key_transactions_take_a_system_slot_only_with_system_instructions() {
+fn vote_key_transactions_take_a_system_slot_only_with_system_rows() {
     assert_eq!(base58::encode(VOTE_PROGRAM), "Vote111111111111111111111111111111111111111");
     let vote_key = |mut tx: sol::ConfirmedTransaction| {
         tx.transaction
@@ -280,10 +277,13 @@ fn vote_key_transactions_take_a_system_slot_only_with_system_instructions() {
         tx
     };
     let block = block(vec![
-        vote_key(transaction(10, vec![])),                // dropped by the legacy input: no slot
-        transaction(11, vec![transfer(41, 1)]),           // slot 0, as in the legacy package
-        vote_key(transaction(12, vec![transfer(42, 1)])), // kept natively, so it takes slot 1
-        transaction(13, vec![transfer(43, 1)]),           // slot 2; the legacy package uses 1
+        vote_key(transaction(10, vec![])),                                       // dropped by the legacy input: no slot
+        transaction(11, vec![transfer(41, 1)]),                                  // slot 0, as in the legacy package
+        vote_key(transaction(12, vec![create_account(42, 3)])),                  // no row, so no slot either
+        vote_key(transaction(13, vec![transfer(43, 0)])),                        // a self transfer writes no row: no slot
+        transaction(14, vec![transfer(44, 1)]),                                  // slot 1, as in the legacy package
+        vote_key(transaction(15, vec![create_account(45, 3), transfer(46, 1)])), // kept natively: slot 2
+        transaction(16, vec![transfer(47, 1)]),                                  // slot 3; the legacy package uses 2
     ]);
     let slots: Vec<_> = formatted(&block)
         .table_changes
@@ -294,10 +294,43 @@ fn vote_key_transactions_take_a_system_slot_only_with_system_instructions() {
                 panic!("composite key")
             };
             let lamports = row.fields.iter().find(|field| field.name == "lamports").unwrap();
-            (lamports.value.clone(), key.keys["transaction_index"].clone())
+            format!("{} {}.{}", lamports.value, key.keys["transaction_index"], key.keys["instruction_index"])
         })
         .collect();
-    assert_eq!(slots, [("41".into(), "0".into()), ("42".into(), "1".into()), ("43".into(), "2".into())]);
+    assert_eq!(slots, ["41 0.0", "44 1.0", "46 2.1", "47 3.0"]);
+}
+
+#[test]
+fn system_row_predicate_matches_the_formatter() {
+    use system::instruction::Instruction as I;
+    let transfer = |destination: u8| system::Transfer {
+        source: vec![1; 32],
+        destination: vec![destination; 32],
+        lamports: 42,
+    };
+    for (instruction, row) in [
+        (I::Transfer(transfer(2).into()), true),
+        (I::Transfer(transfer(1).into()), false),
+        (I::TransferWithSeed(Default::default()), true),
+        (I::CreateAccount(Default::default()), false),
+        (I::CreateAccountWithSeed(Default::default()), false),
+        (I::WithdrawNonceAccount(Default::default()), true),
+    ] {
+        let instruction = system::Instruction {
+            instruction: Some(instruction),
+            ..Default::default()
+        };
+        let events = system::Events {
+            transactions: vec![system::Transaction {
+                signature: vec![10; 64],
+                instructions: vec![instruction.clone()],
+                ..Default::default()
+            }],
+        };
+        let changes = crate::changes(&clock(&block(vec![])), &spl::Events::default(), &events).unwrap();
+        let rows = changes.table_changes.iter().filter(|change| change.table != "blocks").count();
+        assert_eq!((emits_system_row(&instruction), rows), (row, usize::from(row)), "{instruction:?}");
+    }
 }
 
 #[test]
