@@ -140,9 +140,11 @@ macro_rules! block_view {
 /// instance. Byte fields are borrowed, never copied or re-encoded. This macro
 /// does not make the native projector depend on Buffa or Substreams.
 ///
-/// Returns `Result<model::Block<'_>, UnsupportedMessage>`: only legacy messages
-/// (`version: None`) and v0 (`Some(0)`) without inline transaction configuration
-/// are covered. Newer message shapes fail before their fields can be discarded.
+/// Returns `Result<model::Block<'_>, UnsupportedMessage>`: legacy messages
+/// (`version: None`), v0 (`Some(0)`) without inline transaction configuration,
+/// and v1 (`Some(1)`) without address table lookups, with or without its inline
+/// compute budget, are covered. Newer message shapes fail before their fields
+/// can be discarded.
 ///
 /// ```ignore
 /// spl_transfers::block_view_buffa!(pub fn view_block, substreams_solana::pb::sf::solana::r#type::v1);
@@ -194,8 +196,10 @@ macro_rules! block_view_buffa_lenient {
     };
 }
 
-// The message shapes the Buffa adapters do not cover: explicit versions other
-// than v0, contradictory version metadata, or inline transaction configuration.
+// The message shapes the Buffa adapters do not cover: explicit versions above
+// v1, contradictory version metadata, inline transaction configuration outside
+// v1, or address table lookups in v1. A v1 message resolves every account from
+// its static keys; its inline compute budget is not read by any projection.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __unsupported_message {
@@ -204,12 +208,18 @@ macro_rules! __unsupported_message {
             .transaction
             .as_option()
             .and_then(|transaction| transaction.message.as_option())
-            .filter(|message| message.version.is_some_and(|version| version != 0 || !message.versioned) || message.transaction_config.is_set())
+            .filter(|message| match message.version {
+                None => message.transaction_config.is_set(),
+                Some(0) => !message.versioned || message.transaction_config.is_set(),
+                Some(1) => !message.versioned || !message.address_table_lookups.is_empty(),
+                Some(_) => true,
+            })
             .map(|message| $crate::UnsupportedMessage {
                 transaction_index: $transaction_index,
                 version: message.version,
                 versioned: message.versioned,
                 inline_configuration: message.transaction_config.is_set(),
+                address_table_lookups: message.address_table_lookups.len(),
             })
     };
 }

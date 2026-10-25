@@ -1,7 +1,7 @@
 use crate::decode::DecodeError;
 use std::fmt;
 
-/// A message shape outside the projector's legacy/v0 coverage, discovered by
+/// A message shape outside the projector's legacy/v0/v1 coverage, discovered by
 /// the Buffa adapter before newer schema fields would be lost in the view.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UnsupportedMessage {
@@ -10,14 +10,16 @@ pub struct UnsupportedMessage {
     pub version: Option<u32>,
     pub versioned: bool,
     pub inline_configuration: bool,
+    /// Number of address table lookups; a v1 message must have none.
+    pub address_table_lookups: usize,
 }
 
 impl fmt::Display for UnsupportedMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "transaction {}: unsupported message version {:?} (versioned: {}) or inline configuration {}",
-            self.transaction_index, self.version, self.versioned, self.inline_configuration
+            "transaction {}: unsupported message version {:?} (versioned: {}, inline configuration: {}, address table lookups: {})",
+            self.transaction_index, self.version, self.versioned, self.inline_configuration, self.address_table_lookups
         )
     }
 }

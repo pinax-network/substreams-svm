@@ -286,16 +286,68 @@ fn native_context_rejects_stale_dlmm_fifo_after_caught_failure() {
 }
 
 #[test]
-fn native_projection_rejects_new_or_unknown_transaction_versions() {
-    for version in [1, 17] {
-        let mut block = fixture();
+fn native_projection_admits_v1_and_rejects_new_or_contradictory_transaction_versions() {
+    let original = fixture();
+    let expected = project(&original).unwrap();
+    assert!(original.transactions[0].transaction.message.address_table_lookups.is_empty());
+    // v1 resolves every account from its static keys; its inline compute
+    // budget is not read, so the projection is unchanged.
+    for configured in [false, true] {
+        let mut block = original.clone();
         let message = block.transactions[0].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
         message.versioned = true;
-        message.version = Some(version);
-        assert!(matches!(project(&block), Err(ProjectError::UnsupportedMessage(_))));
+        message.version = Some(1);
+        if configured {
+            message.transaction_config = source::TransactionConfig {
+                priority_fee: Some(1),
+                compute_unit_limit: Some(200_000),
+                ..Default::default()
+            }
+            .into();
+        }
+        assert_eq!(project(&block).unwrap(), expected);
     }
-    let mut block = fixture();
-    let message = block.transactions[0].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
-    message.transaction_config = source::TransactionConfig::default().into();
-    assert!(matches!(project(&block), Err(ProjectError::UnsupportedMessage(_))));
+    for (version, versioned, lookups, configured) in [
+        (Some(2), true, false, false),
+        (Some(17), true, false, false),
+        (Some(1), false, false, false),
+        (Some(1), true, true, true),
+        (Some(0), true, false, true),
+        (None, false, false, true),
+    ] {
+        let mut block = original.clone();
+        let message = block.transactions[0].transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+        message.versioned = versioned;
+        message.version = version;
+        if lookups {
+            message.address_table_lookups.push(Default::default());
+        }
+        if configured {
+            message.transaction_config = source::TransactionConfig::default().into();
+        }
+        assert!(
+            matches!(project(&block), Err(ProjectError::UnsupportedMessage(_))),
+            "{version:?} {versioned} {lookups} {configured}"
+        );
+    }
+}
+
+#[test]
+fn current_block_with_v1_messages_matches_the_wrapper() {
+    let mut bytes = Vec::new();
+    GzDecoder::new(include_bytes!("../../spl/transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz").as_slice())
+        .read_to_end(&mut bytes)
+        .unwrap();
+    let block = source::Block::decode_from_slice(bytes.as_slice()).unwrap();
+    let projection = project(&block).unwrap();
+    let rows = |v1_only: bool| {
+        projection
+            .transactions
+            .iter()
+            .filter(|tx| !v1_only || block.transactions[tx.transaction_index as usize].transaction.message.version == Some(1))
+            .map(|tx| tx.swaps.len())
+            .sum::<usize>()
+    };
+    assert_eq!((rows(false), rows(true)), (61, 10));
+    assert_eq!(projection.into_legacy(), map_events(block).unwrap());
 }

@@ -87,12 +87,23 @@ generated type. The native crate has no protobuf or Substreams dependency.
 - `block_view_buffa!` reads the current `substreams-solana-core` 0.16 model and
   returns `Result<model::Block<'_>, UnsupportedMessage>`. Message presence is
   explicit: absent messages never become Buffa's default instance. Coverage is
-  legacy/v0 only: an explicit version above 0, contradictory v0 metadata, or any
-  inline transaction configuration rejects the block with its original
-  transaction index, including when that transaction failed. An unset version
-  with `versioned: true` remains supported for older producers' v0 messages.
+  legacy, v0 and v1 messages:
+  - a v0 message must not carry inline transaction configuration;
+  - a v1 message (`version: Some(1)`, `versioned: true`) is covered with or
+    without its inline compute budget (`transaction_config`), which no
+    projection reads. It must have no address table lookups: every v1 account
+    is a static key.
+  - An explicit version above 1, contradictory version metadata, a v1 message
+    with lookups, or inline configuration on any other message rejects the
+    block with its original transaction index, including when that
+    transaction failed.
+  - An unset version with `versioned: true` remains supported for older
+    producers' v0 messages.
+
   Native projection (`project`) and the `spl_transfers` package use this
-  fail-closed adapter.
+  fail-closed adapter. About 40% of mainnet transactions are v1 messages since
+  October 2026, so before v1 was covered this adapter rejected nearly every
+  current block.
 - `block_view_buffa_lenient!` is for production Substreams modules that must
   not halt on a message shape this crate does not cover. It returns the full
   view, so original indexes are unchanged, plus the transactions
@@ -103,11 +114,11 @@ generated type. The native crate has no protobuf or Substreams dependency.
 - The existing `block_view!` still accepts Prost `Vec<u8>` and `bytes::Bytes`
   models, with its original infallible view signature. Older generated models
   do not expose the newer version/configuration fields; callers must establish
-  legacy/v0 coverage before using a model that cannot represent them.
+  legacy/v0/v1 coverage before using a model that cannot represent them.
 
 Neither adapter encodes or copies byte fields. `buffa_model` and `bytes_model`
-compare borrowed fields and projections on all four pinned blocks. The older
-Prost model is a development dependency only, retained for compatibility tests.
+compare borrowed fields and projections on the pinned blocks. The older Prost
+model is a development dependency only, retained for compatibility tests.
 
 The Substreams wrapper uses SDK 0.8, Solana core 0.16 and Buffa 0.9.2. Its output
 types are exported through `spl_transfers_substreams::pb` and come from the
@@ -121,12 +132,19 @@ live evidence applies to the revision that was tested.
 ## Tests
 
 `cargo test -p spl-transfers -p spl-transfers-substreams -p spl-token-common -p svm-transfers`
-runs against four complete mainnet blocks in `tests/fixtures` (see its README):
+runs against four complete 2025 mainnet blocks in `tests/fixtures` (see its
+README):
 
 - success and failure transactions, including failed `TransferChecked`;
 - a top-level zero-amount transfer, plus inner self transfers;
 - mints from loaded (ALT) addresses, and temporary accounts;
 - Token-2022, and skipped slots.
+
+A fifth, current block (`tests/fixtures/rpc`, slot 461335700) has 132 v1
+messages among 314 transactions. It is re-encoded from public JSON-RPC, not
+provider bytes; it pins v1 admission: 296 operations under `ALL`, 59 of them
+from v1 transactions, the same through the `spl_transfers` package and
+`spl-token-common`.
 
 Mutations of those blocks cover:
 

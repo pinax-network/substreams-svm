@@ -40,10 +40,11 @@ spl_transfers::block_view_buffa_lenient!(fn view_block, substreams_solana::pb::s
 /// the unfiltered block: positions are original only when no transaction was
 /// removed upstream.
 ///
-/// Transactions with a message shape the shared decoder does not cover (an
-/// explicit version other than v0, or inline transaction configuration) are
-/// logged and skipped instead of halting the stream; the other transactions
-/// keep their original indexes.
+/// Legacy, v0 and v1 messages are processed. Transactions with a message shape
+/// the shared decoder does not cover (an explicit version above v1, a v1
+/// message with address table lookups, or inline transaction configuration
+/// outside v1) are logged and skipped instead of halting the stream; the other
+/// transactions keep their original indexes.
 pub fn process_block(block: &Block, is_spl_token_program: fn(&[u8]) -> bool) -> Result<pb::Events, Error> {
     let (view, unsupported) = view_block(block);
     for message in &unsupported {

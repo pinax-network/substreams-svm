@@ -76,14 +76,20 @@ schema remain the compatibility contract. Captured output-byte goldens and
 native/wrapper parity tests check this migration; they do not qualify untested
 protocol behavior or a live provider.
 
-The native `project` and `project_with_limits` APIs cover legacy and v0 Solana
-messages only. They return `ProjectError::UnsupportedMessage` for an explicit
-version above zero, contradictory explicit v0 metadata, or any present inline
-transaction configuration, including in failed transactions. An absent version
-with `versioned: true` remains supported for older v0 producers. These checks
-prevent newly added upstream fields from being silently discarded. They apply
-to the validated native API; the legacy `map_events` wrapper retains its existing
-filtering and extraction behavior.
+The native `project` and `project_with_limits` APIs cover legacy, v0 and v1
+Solana messages. A v1 message is covered with or without its inline compute
+budget (`transaction_config`), which no adapter reads, and must have no address
+table lookups. They return `ProjectError::UnsupportedMessage` for an explicit
+version above 1, contradictory version metadata, a v1 message with lookups, or
+inline transaction configuration on a legacy or v0 message, including in failed
+transactions. An absent version with `versioned: true` remains supported for
+older v0 producers. These checks prevent newly added upstream fields from being
+silently discarded. They apply to the validated native API; the legacy
+`map_events` wrapper never read the message version and retains its existing
+filtering and extraction behavior. On the current block
+`spl/transfers/tests/fixtures/rpc/solana-mainnet-461335700.pb.gz`, 132 of 314
+transactions are v1 messages; the native projection yields 61 rows, 10 of them
+from v1 transactions, identical to the wrapper's.
 
 The [Linux compatibility workflow](../.github/workflows/sdk-migration.yml) checks
 formatting, clean regeneration with Buf 1.69.0, both native DEX feature modes,
