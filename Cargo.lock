@@ -586,6 +586,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e5c37193a1db1d8ed868c03ec7b152175f26160a5b740e5e484143877e0adf0"
 
 [[package]]
+name = "dex-pools"
+version = "0.0.0"
+dependencies = [
+ "base64 0.22.1",
+ "borsh 1.5.7",
+ "buffa",
+ "common",
+ "flate2",
+ "sha2 0.10.9",
+ "solana-program",
+ "spl-transfers",
+ "substreams-solana-core 0.16.0",
+ "substreams-solana-idls",
+]
+
+[[package]]
 name = "dex-swaps"
 version = "0.0.0"
 dependencies = [
@@ -603,6 +619,21 @@ dependencies = [
  "substreams",
  "substreams-solana-core 0.16.0",
  "substreams-solana-idls",
+]
+
+[[package]]
+name = "dex-swaps-pools"
+version = "0.1.0"
+dependencies = [
+ "buffa",
+ "buffa-types",
+ "dex-pools",
+ "flate2",
+ "proto",
+ "sha2 0.10.9",
+ "substreams",
+ "substreams-database-change",
+ "wasmi",
 ]
 
 [[package]]
@@ -3268,7 +3299,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana-idls"
 version = "2.0.0"
-source = "git+https://github.com/pinax-network/substreams-solana-idls?rev=aed8bcb1fb61950554df0eab0e4d8f7989aebfe1#aed8bcb1fb61950554df0eab0e4d8f7989aebfe1"
+source = "git+https://github.com/pinax-network/substreams-solana-idls?rev=0e7f1d0e303fb7592353a2abe892000394ba4be6#0e7f1d0e303fb7592353a2abe892000394ba4be6"
 dependencies = [
  "base64 0.22.1",
  "borsh 1.5.7",

@@ -1,5 +1,6 @@
 #[cfg(feature = "substreams")]
 pub mod db;
+pub mod invocation;
 pub mod solana;
 #[cfg(feature = "substreams")]
 use substreams::{log, pb::substreams::Clock, scalar::BigInt};

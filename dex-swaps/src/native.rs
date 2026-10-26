@@ -1,5 +1,7 @@
 //! Native complete-block API with source evidence separate from legacy rows.
 use crate::{pb, process_transaction_with_provenance};
+pub(crate) use common::invocation::instruction_positions;
+pub use common::invocation::{InstructionPosition, InvocationOutcome};
 use std::collections::BTreeMap;
 use std::fmt;
 use substreams_solana::block_view::InstructionView;
@@ -7,12 +9,6 @@ use substreams_solana::pb::sf::solana::r#type::v1::{Block, ConfirmedTransaction,
 use substreams_solana_idls::{jupiter, okx};
 
 spl_transfers::block_view_buffa!(fn view_block, substreams_solana::pb::sf::solana::r#type::v1);
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct InstructionPosition {
-    pub instruction_index: u32,
-    pub inner_instruction_index: Option<u32>,
-}
 
 /// Location of the evidence that emitted a decoded row, not a guessed location
 /// of an earlier swap invocation. Self-CPI events carry their event instruction's
@@ -30,15 +26,6 @@ pub enum SwapKind {
     PoolExecution,
     /// Jupiter and OKX summaries can duplicate separately decoded venue rows.
     AggregatorSummary,
-}
-
-/// Success requires an exact instruction/log invocation trace, including every
-/// enclosing call. Missing, truncated, or ambiguous logs leave it unknown.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum InvocationOutcome {
-    Succeeded,
-    Failed,
-    Unknown,
 }
 
 /// One decoded row plus the evidence the native API can prove about it.
@@ -423,37 +410,6 @@ fn aggregator_routes(
         }
     }
     routes
-}
-
-pub(crate) fn instruction_positions(tx: &ConfirmedTransaction) -> Vec<InstructionPosition> {
-    let Some(message) = tx.transaction.as_option().and_then(|tx| tx.message.as_option()) else {
-        return Vec::new();
-    };
-    // Match the SDK walk's last-entry behavior without a repeated linear scan.
-    // The validated native API rejects duplicate parent entries beforehand.
-    let inner_by_outer: std::collections::HashMap<_, _> = tx
-        .meta
-        .as_option()
-        .into_iter()
-        .flat_map(|meta| &meta.inner_instructions)
-        .map(|group| (group.index, group))
-        .collect();
-    let mut positions = Vec::new();
-    for index in 0..message.instructions.len() {
-        positions.push(InstructionPosition {
-            instruction_index: index as u32,
-            inner_instruction_index: None,
-        });
-        if let Some(group) = inner_by_outer.get(&(index as u32)) {
-            for inner in 0..group.instructions.len() {
-                positions.push(InstructionPosition {
-                    instruction_index: index as u32,
-                    inner_instruction_index: Some(inner as u32),
-                });
-            }
-        }
-    }
-    positions
 }
 
 pub(crate) struct Collector {

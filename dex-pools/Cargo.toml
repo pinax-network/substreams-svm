@@ -1,0 +1,19 @@
+[package]
+name = "dex-pools"
+description = "Native Solana pool creation decoding with invocation evidence"
+edition = { workspace = true }
+version = { workspace = true }
+
+[dependencies]
+common = { path = "../common", default-features = false }
+substreams-solana-core = "0.16.0"
+substreams-solana-idls = { workspace = true }
+spl-transfers = { path = "../spl/transfers" }
+buffa = { workspace = true }
+base64 = "0.22.1"
+
+[dev-dependencies]
+borsh = "1"
+solana-program = "2.3.0"
+sha2 = "0.10"
+flate2 = "1"

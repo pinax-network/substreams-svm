@@ -57,6 +57,24 @@ jobs:
           fi
       - name: Test native DEX API with default features
         run: cargo test --locked -p dex-swaps
+      - name: Test native pool decoding and both store outputs
+        run: |
+          cargo tree --locked -p dex-pools --edges normal,build > "$RUNNER_TEMP/pool-native-dependencies.txt"
+          if grep -Eq '(^|[[:space:]])(substreams|prost|prost-types|substreams-database-change) v' "$RUNNER_TEMP/pool-native-dependencies.txt"; then
+            cat "$RUNNER_TEMP/pool-native-dependencies.txt"
+            echo "The pool decoder must not depend on a Substreams runtime or legacy protobuf model."
+            exit 1
+          fi
+          cargo test --locked -p dex-pools -p dex-swaps-pools
+      - name: Test isolated Buffa and Prost pool decoder consumers
+        run: |
+          cargo tree --locked --manifest-path dex-pools/consumer-tests/Cargo.toml --edges normal,build --prefix none > "$RUNNER_TEMP/pool-consumer-dependencies.txt"
+          if grep -Eq '^substreams v' "$RUNNER_TEMP/pool-consumer-dependencies.txt"; then
+            cat "$RUNNER_TEMP/pool-consumer-dependencies.txt"
+            echo "The isolated native consumer unexpectedly includes the Substreams runtime."
+            exit 1
+          fi
+          cargo test --locked --manifest-path dex-pools/consumer-tests/Cargo.toml
       - name: Test native DEX API without the Substreams runtime
         run: |
           cargo tree --locked -p dex-swaps --no-default-features --edges normal,build,dev > "$RUNNER_TEMP/dex-native-dependencies.txt"

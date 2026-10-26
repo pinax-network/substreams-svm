@@ -32,8 +32,11 @@ This guide is a quick map for contributors and coding agents working in this mon
 1. Start in `dex/<protocol>/` and update `src/lib.rs`.
 2. Confirm `substreams.yaml` block filter (`program:<PROGRAM_ID>`).
 3. Ensure matching protobuf in `proto/v1/*.proto`.
-4. Wire output into `svm-dex/substreams.yaml` imports + `db_out` inputs.
-5. Update ClickHouse sink schemas in `svm-dex/clickhouse/`.
+4. For normalized swaps, add an adapter to `dex-swaps`; `svm-dex` consumes its
+   unified map rather than each protocol's map.
+5. For pool identities, add an adapter and creation fixtures to `dex-pools`;
+   its legacy and Hosted Store wrapper is `dex-swaps-pools`.
+6. Update ClickHouse sink schemas in `svm-dex/clickhouse/` when output changes.
 
 The reusable scripts resolve paths relative to their own repository and refuse
 to replace an existing crate, source file or schema:
@@ -80,6 +83,27 @@ fails when any plain `wasm/rust-v1` binary imports anything outside `env` and
 `logger`.
 
 ### Native DEX projection
+
+`dex-pools` exports shared-IDL pool creation decoding for native consumers and
+an execution-verified projection over a Solana core block. Raw decoding returns
+unverified metadata; durable records require successful invocation evidence.
+`dex-swaps-pools` exposes one `map_pool_creations` decoder reading only
+`solana_common:blocks_without_votes`. Its `dex.pools.v1.Pools` output feeds two
+independent branches: legacy `store_pools` (`set_if_not_exists`, base58 keys)
+with a `map_pools` Create-delta consumer, and `map_pool_entries` producing Hosted
+Store v2 `SinkEntries` (`if_not_exist`, raw keys). The Hosted Store branch does
+not rely on the legacy store or its historical deduplication. Both branches
+retain their own first value for each pool over the history they ingest. See the
+[native decoder](../dex-pools/README.md) and
+[pool store package](../dex-swaps-pools/README.md). The package name is
+`dex_swaps_pools`, packed as `spkg/dex-swaps-pools-v0.1.0.spkg`; native consumers
+still use the `dex-pools` library. The value schema lives
+in `proto/v1/dex-pools.proto`. Protocol order and source identity are explicit;
+filtered-block indexes must not be treated as original full-block indexes.
+
+`common::invocation` owns the shared exact instruction/log trace proof used by
+swaps and pools, including failed-ancestor propagation. Native users disable
+`common`'s default Substreams feature.
 
 `dex-swaps::project(&Block)` validates complete blocks and adds original
 transaction/event-instruction or log provenance, aggregator classification and,

@@ -27,6 +27,11 @@ pub mod darklake {
     }
 }
 pub mod dex {
+    pub mod pools {
+        pub mod v1 {
+            include!("dex.pools.v1.mod.rs");
+        }
+    }
     pub mod swaps {
         pub mod v1 {
             include!("dex.swaps.v1.mod.rs");

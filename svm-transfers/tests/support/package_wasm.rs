@@ -1,8 +1,9 @@
 //! Bounded test-only host that runs the module graph embedded in a packed
 //! `.spkg` (an `sf.substreams.v1.Package`). Each module's inputs and block
 //! filter are read from the package, so a rewired manifest changes what runs.
-//! Same limits and host imports as `legacy_wasm.rs`: no stores, WASI, network
-//! or filesystem; 64 MiB of memory, 4 MiB per input and output, bounded fuel.
+//! No WASI, network or filesystem; 64 MiB of memory, 4 MiB per input and
+//! output, bounded fuel. Maps forbid store writes; `run_store` collects bounded
+//! `set_if_not_exists` calls without implementing persistent state.
 //!
 //! Shared by the `committed_` tests of `svm-transfers` and `svm-dex`.
 #![allow(dead_code)]
@@ -16,12 +17,25 @@ use substreams_database_change::pb::sf::substreams::sink::database::v1::{table_c
 use wasmi::{Caller, Config, Engine, Error, Linker, Module, Store, StoreLimits, StoreLimitsBuilder, Val};
 
 const MAX_BYTES: usize = 4 * 1024 * 1024;
+const MAX_KEY_BYTES: usize = 1024;
+const MAX_STORE_WRITES: usize = 16_384;
 const FUEL: u64 = 4_000_000_000;
+
+/// One requested write. The caller applies first-write semantics across blocks.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StoreWrite {
+    pub ordinal: u64,
+    pub key: String,
+    pub value: Vec<u8>,
+}
 
 struct Host {
     limits: StoreLimits,
     output: Option<Vec<u8>>,
     panicked: bool,
+    allow_store_writes: bool,
+    writes: Vec<StoreWrite>,
+    write_bytes: usize,
 }
 
 /// Fields of one protobuf message: (number, length-delimited bytes, varint).
@@ -149,6 +163,15 @@ impl Package {
             .map(|input| match input.input.as_ref().expect("module input") {
                 Input::Source(source) => format!("source {}", source.r#type),
                 Input::Map(map) => format!("map {}", local(&map.module_name)),
+                Input::Store(store) => {
+                    use modules::module::input::store::Mode;
+                    let mode = match store.mode.as_known().expect("known store input mode") {
+                        Mode::UNSET => "unset",
+                        Mode::GET => "get",
+                        Mode::DELTAS => "deltas",
+                    };
+                    format!("store {} {mode}", local(&store.module_name))
+                }
                 Input::Params(params) => format!("params {:?}", params.value),
                 other => format!("{other:?}"),
             })
@@ -163,6 +186,25 @@ impl Package {
     /// Runs one map or index module on explicit inputs; `None` is a
     /// registered package panic (a handler error).
     pub fn run(&self, name: &str, inputs: &[&[u8]]) -> Option<Vec<u8>> {
+        self.run_with_store_writes(name, inputs, false).map(|(output, _)| output)
+    }
+
+    /// Runs one `set_if_not_exists` store handler on explicit inputs. Calls are
+    /// collected in execution order; no writes survive a registered panic.
+    pub fn run_store(&self, name: &str, inputs: &[&[u8]]) -> Option<Vec<StoreWrite>> {
+        use modules::module::{kind_store::UpdatePolicy, Kind};
+        let Some(Kind::KindStore(kind)) = &self.module(name).kind else {
+            panic!("{name}: expected a store module");
+        };
+        assert_eq!(
+            kind.update_policy.as_known(),
+            Some(UpdatePolicy::UPDATE_POLICY_SET_IF_NOT_EXISTS),
+            "{name}: unsupported store update policy"
+        );
+        self.run_with_store_writes(name, inputs, true).map(|(_, writes)| writes)
+    }
+
+    fn run_with_store_writes(&self, name: &str, inputs: &[&[u8]], allow_store_writes: bool) -> Option<(Vec<u8>, Vec<StoreWrite>)> {
         let definition = self.module(name);
         let module = &self.binaries[definition.binary_index as usize];
         let mut store = Store::new(
@@ -171,6 +213,9 @@ impl Package {
                 limits: StoreLimitsBuilder::new().memory_size(64 * 1024 * 1024).instances(1).memories(1).build(),
                 output: None,
                 panicked: false,
+                allow_store_writes,
+                writes: Vec::new(),
+                write_bytes: 0,
             },
         );
         store.limiter(|host| &mut host.limits);
@@ -192,6 +237,9 @@ impl Package {
                 "env",
                 "output",
                 |mut caller: Caller<'_, Host>, pointer: i32, length: i32| -> Result<(), Error> {
+                    if caller.data().allow_store_writes {
+                        return Err(Error::new("store handler emitted output"));
+                    }
                     let pointer = usize::try_from(pointer).map_err(|_| Error::new("negative output pointer"))?;
                     let length = usize::try_from(length).map_err(|_| Error::new("negative output length"))?;
                     if length > MAX_BYTES || caller.data().output.is_some() {
@@ -204,6 +252,52 @@ impl Package {
                     let mut bytes = vec![0; length];
                     memory.read(&caller, pointer, &mut bytes).map_err(|_| Error::new("invalid output range"))?;
                     caller.data_mut().output = Some(bytes);
+                    Ok(())
+                },
+            )
+            .unwrap();
+        // Register this for maps as well: a shared binary can import state
+        // functions even when the selected handler never calls them.
+        linker
+            .func_wrap(
+                "state",
+                "set_if_not_exists",
+                |mut caller: Caller<'_, Host>, ordinal: i64, key_pointer: i32, key_length: i32, value_pointer: i32, value_length: i32| -> Result<(), Error> {
+                    if !caller.data().allow_store_writes {
+                        return Err(Error::new("store write from map or index handler"));
+                    }
+                    let key_pointer = usize::try_from(key_pointer).map_err(|_| Error::new("negative store key pointer"))?;
+                    let key_length = usize::try_from(key_length).map_err(|_| Error::new("negative store key length"))?;
+                    let value_pointer = usize::try_from(value_pointer).map_err(|_| Error::new("negative store value pointer"))?;
+                    let value_length = usize::try_from(value_length).map_err(|_| Error::new("negative store value length"))?;
+                    let write_bytes = caller
+                        .data()
+                        .write_bytes
+                        .checked_add(key_length)
+                        .and_then(|total| total.checked_add(value_length))
+                        .ok_or_else(|| Error::new("store write size overflow"))?;
+                    if key_length > MAX_KEY_BYTES || value_length > MAX_BYTES || write_bytes > MAX_BYTES || caller.data().writes.len() >= MAX_STORE_WRITES {
+                        return Err(Error::new("store write limit exceeded"));
+                    }
+                    let memory = caller
+                        .get_export("memory")
+                        .and_then(|value| value.into_memory())
+                        .ok_or_else(|| Error::new("missing memory"))?;
+                    let mut key = vec![0; key_length];
+                    let mut value = vec![0; value_length];
+                    memory.read(&caller, key_pointer, &mut key).map_err(|_| Error::new("invalid store key range"))?;
+                    memory
+                        .read(&caller, value_pointer, &mut value)
+                        .map_err(|_| Error::new("invalid store value range"))?;
+                    let key = String::from_utf8(key).map_err(|_| Error::new("invalid UTF-8 store key"))?;
+                    let host = caller.data_mut();
+                    // The SDK casts u64 to i64 for the WASM ABI; retain its bits.
+                    host.writes.push(StoreWrite {
+                        ordinal: ordinal as u64,
+                        key,
+                        value,
+                    });
+                    host.write_bytes = write_bytes;
                     Ok(())
                 },
             )
@@ -237,7 +331,8 @@ impl Package {
             None
         } else {
             result.unwrap_or_else(|error| panic!("{name}: unexpected WASM host/trap/fuel failure: {error}"));
-            Some(store.data_mut().output.take().unwrap_or_default())
+            let host = store.data_mut();
+            Some((host.output.take().unwrap_or_default(), std::mem::take(&mut host.writes)))
         }
     }
 
