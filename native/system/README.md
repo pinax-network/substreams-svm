@@ -38,7 +38,8 @@ Depend on `native-token` with `default-features = false` and call
 runtime; the default feature preserves the WASM wrapper.
 
 The projector shares the wrapper's system instruction decoder, validates complete
-block structure and legacy/v0 message support, and returns original transaction,
+block structure and legacy, v0 and v1 message support (a v1 message without
+address table lookups), and returns original transaction,
 outer instruction and inner instruction positions. It resolves loaded accounts
 and skips failed transactions. Results borrow transaction metadata. Input bytes
 and protobuf allocations must also be bounded by the caller. Capacity or malformed

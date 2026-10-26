@@ -23,6 +23,7 @@ native-token = { path = "../native/system", default-features = false }
 [dev-dependencies]
 flate2 = "1"
 spl-token-common = { path = "../spl/token-common" }
+spl-transfers-substreams = { path = "../spl/transfers-substreams" }
 wasmi = { version = "=0.46.0", default-features = false, features = ["std"] }
 sha2 = "0.10"
 serde_json = "1"

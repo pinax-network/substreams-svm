@@ -33,7 +33,7 @@ fn unhex(value: &str) -> Vec<u8> {
         .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect()
 }
-fn synthetic() -> Vec<(String, pb::Events)> {
+pub(super) fn synthetic() -> Vec<(String, pb::Events)> {
     let swap = pb::Swap {
         protocol: pb::Protocol::MeteoraDlmm.into(),
         program_id: vec![1; 32],
@@ -110,11 +110,11 @@ fn synthetic() -> Vec<(String, pb::Events)> {
     cases
 }
 /// One real transaction in a Firehose-format block of its own.
-struct BlockCase {
-    name: &'static str,
+pub(super) struct BlockCase {
+    pub(super) name: &'static str,
     difference: &'static str,
     source: &'static str,
-    block: sol::Block,
+    pub(super) block: sol::Block,
     /// The unmodified RPC-derived transaction, before restoring its lookup.
     rpc_block: Option<sol::Block>,
 }
@@ -131,7 +131,7 @@ fn single_transaction_block(slot: u64, block_time: i64, tag: u8, transaction: so
     }
 }
 
-fn block_cases() -> Vec<BlockCase> {
+pub(super) fn block_cases() -> Vec<BlockCase> {
     let mut cases = Vec::new();
     // `getTransaction` (JSON) fixtures from 2026 keep the resolved loaded
     // addresses but not the message's address table lookups, which a Firehose

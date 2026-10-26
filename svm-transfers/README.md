@@ -12,10 +12,22 @@ package and schema live in [`clickhouse/`](clickhouse/).
   position among the inner instructions. Earlier versions wrote dense indexes
   over filtered transactions and instructions, so the same columns mean
   something else for every existing row.
-- Both tables use `MergeTree`, so re-sinking a range appends rows instead of
-  replacing them. Rebuild them rather than backfilling part of the history:
-  apply the schema (it adds `inner_instruction_index` idempotently), truncate
-  `spl_transfer` and `transfers`, then re-sink from the start block.
+- Every module hash changes, so the sink cursor must be reset and the whole
+  history re-sunk. The tables use `MergeTree`, so re-sinking a range appends
+  rows instead of replacing them, and that includes `native_transfers`, which
+  the three `mv_system_*` views fill and which has no TTL. Deploy v0.4.0 into a
+  fresh database. To reuse a database instead, drop the materialized views and
+  truncate every table (`spl_transfer`, `transfers`, `system_transfer`,
+  `system_transfer_with_seed`, `system_withdraw_nonce_account`,
+  `native_transfers` and `blocks`), apply the new schema, which recreates the
+  views (every view is `CREATE ... IF NOT EXISTS`, so an existing
+  `mv_spl_transfer` would otherwise keep its old definition), then reset the
+  cursor and re-sink from the start block.
+- `spl_token` v0.4.0 validates each complete block before decoding it. A
+  structurally invalid block (for example a missing transaction meta, an
+  account index out of range or an inconsistent inner instruction group) is an
+  error that halts the stream, where v0.3.0 never returned one. Unsupported
+  message shapes are still skipped, not failed.
 - Unchecked `Transfer` rows now have an empty `mint` (the instruction does not
   name it) and the destination account in `destination`; zero amounts and self
   transfers are kept in `spl_transfer`. The `transfers` view still filters on
@@ -37,6 +49,29 @@ compares both pipelines on a current block with 132 v1 transactions.
 > **Warning.** A release cut from main before v1 support would have regressed
 > against deployed v0.3.0: its `spl_token` v0.4.0 input skipped v1
 > transactions and so dropped their SPL rows, 59 of 296 on that block (v0.3.0
-> writes 55 for them). The
-> committed `spkg/spl-token-v0.4.0.spkg` this manifest imports was packed before
-> v1 support; repack it from the current tree before releasing v0.4.0.
+> writes 55 for them). The `spkg/spl-token-v0.4.0.spkg` that v0.4.0 imports is
+> packed from a tree with v1 support, and the
+> [committed package tests](#committed-package-tests) fail if it is stale.
+
+## Committed package tests
+
+`cargo test -p svm-transfers committed_` runs the WASM embedded in the
+committed `spkg/` files with a bounded test-only interpreter
+([`tests/support/package_wasm.rs`](tests/support/package_wasm.rs)). The module
+graph, inputs and block filters are read from each package, not hard-coded.
+
+- `spkg/svm-transfers-v0.4.0.spkg` (`db_out` over the packed `spl_token` and
+  `native_token`) must equal `native::changes` on the five pinned complete
+  blocks, rows, keys and ordinals included, and the
+  [v0.3.0 boundary corpus](tests/fixtures/legacy-v0.3.0/README.md) must show
+  only its documented differences.
+- `spkg/svm-clickhouse-transfers-v0.4.0.spkg` must embed the same graph.
+- `spkg/spl-transfers-v0.1.0.spkg` with params `all` must equal
+  `spl_transfers::project` with `Coverage::ALL`.
+- Every package these manifests build or import must exist under `spkg/` with
+  matching name and version, and a released file must keep its recorded
+  SHA-256.
+
+A decoder or formatter change therefore fails these tests until the manifest
+version is bumped and the package is repacked under the new name; a released
+file is never repacked in place. See [releasing](../docs/releasing.md).

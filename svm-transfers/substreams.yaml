@@ -13,7 +13,7 @@ imports:
 
   # Substreams
   spl_token: ../spkg/spl-token-v0.4.0.spkg
-  native_token: ../spkg/native-token-v0.3.0.spkg
+  native_token: ../spkg/native-token-v0.3.1.spkg
 
 binaries:
   default:

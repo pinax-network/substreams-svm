@@ -68,6 +68,8 @@ Production and stage still serve svm-dex v0.5.1. Native rows follow the current
 extraction, which corrects the v0.5.1 behaviors below. Each correction keeps
 real swaps or fixes misattributed ones, so it is kept as an accepted difference
 (owner decision, 2026-10-25). Announce them with the native module identity.
+The svm-dex v0.5.3 WASM package ships every correction except the last row:
+its `dex_swaps` input is still `blocks_without_votes`.
 
 | Change | v0.5.1 | Native | Corpus case |
 | --- | --- | --- | --- |
@@ -92,11 +94,27 @@ still fail closed. On the current block above, native rows equal the current
 wrapper's (`dex_swaps::map_events` then `svm_dex::changes`), keys and ordinals
 included.
 
-The `svm-dex` WASM package never read the message version: neither its
-`dex-swaps` v0.5.2 input nor the current `map_events` wrapper checks it. A
-release cut from main before v1 support would therefore not have regressed on
-v1 transactions. Only native consumers did: before v1 support,
+The `svm-dex` WASM package never read the message version: neither the
+`dex-swaps` v0.5.1 and v0.5.2 inputs nor the v0.5.3 `map_events` wrapper checks
+it. A release cut from main before v1 support would therefore not have
+regressed on v1 transactions. Only native consumers did: before v1 support,
 `dex_swaps::project` rejected every block that held a v1 message.
+
+### Committed package tests
+
+`cargo test -p svm-dex committed_` runs the WASM embedded in the committed
+`spkg/svm-dex-v0.5.3.spkg` (`blocks_without_votes`, then
+`dex_swaps:map_events`, then `db_out`, as wired in the package) with a bounded
+test-only interpreter. It must equal `native::changes` on the five pinned
+complete blocks and on the single-transaction cases of the v0.5.1 corpus,
+except the Vote-key case above, and its `db_out` must equal
+`svm_dex::changes` on the 27 synthetic event cases.
+`spkg/svm-clickhouse-dex-v0.5.3.spkg` must embed the same graph, every package
+these manifests build or import must exist under `spkg/` with matching name and
+version, and a released file must keep its recorded SHA-256. A decoder or
+formatter change therefore fails these tests until the manifest version is
+bumped and the package is repacked under the new name. See
+[releasing](../docs/releasing.md).
 
 ```sh
 cargo test --locked -p svm-dex

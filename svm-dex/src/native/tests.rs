@@ -140,4 +140,5 @@ fn empty_complete_block_has_no_database_rows() {
     assert!(changes(&clock(&block), projection, 1, 1024).unwrap().table_changes.is_empty());
 }
 
+mod committed;
 mod legacy_v051;

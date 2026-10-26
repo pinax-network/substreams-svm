@@ -124,9 +124,10 @@ The four extra native rows are zero-amount transfers.
 > skipped those transactions. A legacy release cut from main between the Buffa
 > migration (`b2e4976`, 2026-10-17) and v1 support would therefore have lost
 > the SPL rows of about 40% of current transactions against deployed v0.3.0.
-> The committed, unreleased `spkg/spl-token-v0.4.0.spkg` that this package's
-> manifest imports was packed in `1e3e052`, before v1 support. Repack it from
-> the current tree before releasing.
+> The first pack of `spkg/spl-token-v0.4.0.spkg` (`1e3e052`) predated v1
+> support. The committed one is packed from a tree with it, and
+> `committed_svm_transfers_package_on_the_v030_boundary_corpus` runs the
+> committed svm-transfers v0.4.0 package on this corpus.
 
 To reproduce from a separately downloaded, unmodified release asset:
 

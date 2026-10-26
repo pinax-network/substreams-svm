@@ -20,7 +20,8 @@ This guide is a quick map for contributors and coding agents working in this mon
 - `spl/`, `native/`, `nft/`, `staking/`: protocol-level non-DEX modules.
 - `svm-*`: aggregate DB modules by data domain.
 - `svm-*/clickhouse`: ClickHouse sink packages and schema DDL.
-- `spkg/`: local SPKG dependencies used by aggregate manifests.
+- `spkg/`: local SPKG dependencies used by aggregate manifests, and the
+  committed release packages; see [releasing](releasing.md).
 - `scripts/`: helper scripts for generating DEX boilerplate/proto glue, and the
   CI check that plain `wasm/rust-v1` binaries import only host calls.
 
@@ -113,6 +114,12 @@ provenance and checksums:
 - `svm-transfers/tests/fixtures/legacy-v0.3.0/` and
   `svm-dex/tests/fixtures/legacy-v0.5.1/`: WASM extracted from the deployed
   release SPKGs by `extract_oracle.py`, plus frozen comparison corpora.
+- `svm-transfers/tests/support/package_wasm.rs`: a bounded test-only host that
+  runs the module graph embedded in a committed `spkg/` file, with inputs and
+  block filters read from the package. The `committed_` tests in
+  `svm-transfers` and `svm-dex` use it to require native rows from the
+  committed svm-transfers, spl_transfers and svm-dex packages, so a stale
+  package fails CI.
 
 ### Work on sink schemas
 
@@ -152,7 +159,10 @@ provenance and checksums:
 
 - Generate all shared protobuf models: `make -C proto protogen`
 - Build workspace WASM: `cargo build --target wasm32-unknown-unknown --release`
-- Build/pack per package: `make build`, `make pack` (where Makefile exists)
+- Build/pack per package: `make build`, `make pack` (where Makefile exists).
+  For a release, build the workspace once and pack in dependency order as in
+  [releasing](releasing.md); `make pack` builds per crate and never rebuilds
+  imported packages.
 - Local stream checks: `make noop` / `make gui` in module directories
 
 ## 7) Notes discovered during repo scan

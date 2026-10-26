@@ -7,7 +7,7 @@ use std::fmt::Write;
 #[path = "../../../tests/support/legacy_wasm.rs"]
 mod legacy_wasm;
 
-fn cases() -> Vec<(&'static str, sol::Block)> {
+pub(super) fn cases() -> Vec<(&'static str, sol::Block)> {
     let mut cases = vec![
         ("empty", block(vec![])),
         ("system_transfer", block(vec![transaction(10, vec![transfer(42, 1)])])),
@@ -466,4 +466,8 @@ fn published_v030_current_block_with_v1_messages() {
             ..Default::default()
         }
     );
+}
+
+pub(super) fn oracle() -> legacy_wasm::Oracle {
+    legacy_wasm::Oracle::new()
 }

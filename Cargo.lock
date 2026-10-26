@@ -3388,6 +3388,7 @@ dependencies = [
  "sha2 0.10.9",
  "spl-token-common",
  "spl-transfers",
+ "spl-transfers-substreams",
  "substreams",
  "substreams-database-change",
  "substreams-solana",
