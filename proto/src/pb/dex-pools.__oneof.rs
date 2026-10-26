@@ -10,6 +10,7 @@ pub mod creation {
             ::buffa::alloc::boxed::Box<super::super::super::InstructionPosition>,
         ),
         LogIndex(u32),
+        Initialization(bool),
     }
     impl ::buffa::Oneof for Evidence {}
     impl From<super::super::super::InstructionPosition> for Evidence {

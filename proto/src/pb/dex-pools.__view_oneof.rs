@@ -12,5 +12,6 @@ pub mod creation {
             >,
         ),
         LogIndex(u32),
+        Initialization(bool),
     }
 }

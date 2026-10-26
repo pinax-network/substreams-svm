@@ -28,44 +28,55 @@ memory budget remain the caller's responsibility.
 
 ## Admission and coverage
 
-| Protocol | Covered initialization | Required evidence |
-| --- | --- | --- |
-| Pump.fun AMM | Historical `CreatePoolV2` and current `CreatePoolV3` | Typed initialization/account layout and a matching same-version `CreatePoolEventV2/V3` self-CPI whose immediate parent is that initialization. |
-| Orca Whirlpool | `InitializePool`, `InitializePoolV2`, `InitializePoolWithAdaptiveFee` | Typed initialization/account layout and matching `PoolInitialized` log written by that initialization. |
+The [coverage checklist](../docs/pool-decoder-coverage.md) lists every advertised
+DEX package, implemented creation variants, source evidence and remaining gaps.
+Coverage currently includes 25 protocol families; it does **not** yet satisfy
+all advertised DEX protocols or every historical initialization layout.
 
-Pump.fun bonding curves and AMM V1 creation, all other protocols, historical
-initializations without the required event, and unknown layouts are excluded.
-The IDL exposes a V1 enum but its parser does not decode that variant; this crate
-does not guess or add a local layout fallback. The current creation layout uses
-the shared IDL V3 variant with its complete official suffix; new fields are
-never silently truncated into V2. Initialization/event version pairs and their
-shared mode/fee/reward fields must match. Synthetic tests cover the listed
-layouts; captured-chain fixture coverage is recorded separately in `fixtures/`.
-This package does not promise a complete historical registry.
+Pump.fun AMM V2/current V3 and Orca's three initialization variants retain their
+matched-event admission. Other covered protocols expose identity through shared
+IDL initialization account decoders. Those records require the exact successful
+initialization invocation and every successful ancestor; their evidence is
+`Initialization`, and event-derived metadata is not invented. Order-book records
+use their market account as identity. Bonding curves use their curve account.
+Stabble retains every underlying mint in weight order, excluding its LP mint.
 
 `project` validates the whole supplied block structurally and rejects unsupported
 message shapes. It accepts the workspace's legacy, v0 and v1 admission policy.
-Failed transactions produce no records. A pool also requires an exact alignment
-of instruction positions with runtime invocation logs, including successful
-outcomes for its event, initialization and every ancestor. Caught CPI failures,
-missing/truncated logs, forged runtime-shaped program messages, another program's
-event, mismatched accounts and stale events cannot establish a pool.
+Failed transactions produce no records. An exact alignment of instruction
+positions with runtime logs proves invocation outcomes, including caught CPI
+failures and ancestors. Missing, truncated, inconsistent or forged runtime
+traces cannot establish a committed initialization.
+
+SPL Token Swap, Saros and Aldrin initializers contain custody vaults rather than mint
+addresses. Their identities use only token metadata for those exact vaults from
+the supplied transaction. Conflicting pre/post mints, decimals or token programs
+remain unknown and produce no record; swap direction, amounts or another user's
+token account do not identify pool assets.
 
 Malformed supported block structure, unsupported message versions, exceeded
 limits and conflicting pool metadata return an error for the whole projection.
-Unproved or unknown creation evidence is omitted. Successful empty projections
-still carry slot and block hash. Omissions mean unknown coverage, not proof that
-no pools were created.
+Unknown layouts and unproved creation evidence are omitted. Successful empty
+projections still carry slot and block hash. Omissions mean unknown coverage,
+not proof that no pools were created. Captured Pump, Orca and Aldrin fixtures
+remain distinct from synthetic typed-initializer tests; synthetic coverage
+is not proof of every live or historical deployment.
 
 ## Record meaning
 
-- `address` is the actual pool account, never an aggregator or program fallback.
-- `tokens` retain protocol order: Pump base/quote or Orca A/B. They do not follow
-  swap direction. Mints, token programs and optional vaults are matched to the
-  initialization accounts; decimals come from its matched event. Missing optional
+- `address` is the actual pool, market or bonding-curve account, never an
+  aggregator or program fallback.
+- `tokens` retain complete protocol creation order, including multi-asset pools.
+  They do not follow swap direction. Mints, token programs and optional vaults are matched to the
+  initialization accounts; decimals come from matched events, typed initializer arguments, exact vault
+  metadata, or the explicit native-SOL contract. Missing optional
   fields remain `None`; zero decimals is a present value, not absence.
+- `is_native` distinguishes native SOL from SPL assets. Native SOL uses the
+  normalized `So11111111111111111111111111111111111111112` asset ID, with no
+  SPL token-program or custody-vault claim. Wrapped SOL uses the same mint bytes
+  with `is_native = false`.
 - Creation carries slot, block hash, signature, initialization position and
-  event instruction or original log position.
+  either initialization-only evidence, an event instruction, or a log position.
 - `creation.transaction_index` indexes the **supplied block**. In a
   `blocks_without_votes` input the transaction array is already compacted.
   Use signature plus instruction/log evidence as identity across filtered and
@@ -89,20 +100,29 @@ qualified snapshot.
 
 ## Other native transport models
 
-`decode_pool_creation(program_id, instruction_data, resolved_accounts, event_data)`
-borrows byte slices from any model, including Firehose Parquet's Prost `Bytes`
-and Pinax Streams' Buffa models. It calls the same typed IDL decoding as `project`,
-with no whole-block serialization. A bounded small instruction view copies at
-most 32 account keys and 2048 instruction bytes because the upstream typed
-account helpers accept that view. Event input is limited to 2048 bytes.
+The native exports borrow byte slices from any model, including Firehose
+Parquet's Prost `Bytes` and Pinax Streams' Buffa models:
 
-Its result is deliberately named `Candidate`: matching event fields alone do
-not prove that the event was written by the expected invocation or committed.
-Callers must provide their own equivalent execution-evidence admission, or use
-`project` with the reexported core model. This crate does not provide full
-model-independent block projection; the raw decoder is the shared decoding
-boundary. The isolated `consumer-tests/` crate demonstrates both model families
-without a Substreams runtime and includes an explicit negative mismatch test.
+- `decode_pool_creation(program_id, instruction_data, resolved_accounts, event_data)`
+  retains matched-event Pump/Orca decoding.
+- `decode_pool_initialization(program_id, instruction_data, resolved_accounts)`
+  decodes the other covered shared-IDL initialization layouts.
+- `decode_pool_initialization_with_token_accounts(..., &[TokenAccountMetadata])`
+  also resolves the exact custody vaults needed by SPL Token Swap, Saros and Aldrin.
+
+All return an **unverified `Candidate`**. Matching fields or typed account
+positions alone do not prove that the program accepted the payload or that its
+ancestors committed. Context supplied by a native caller is also unverified.
+Callers must apply equivalent execution admission, or use `project` with the
+reexported core model. The raw boundary does not serialize an entire block.
+
+A bounded tiny instruction view copies at most 32 account keys for matched-event
+decoding or 255 for initialization decoding, plus 2048 instruction bytes, because
+shared typed account helpers accept that view. Event input is limited to 2048
+bytes. The contextual raw API accepts at most 512 token-account metadata records.
+The larger initializer account bound accommodates current Pump quote-chain
+accounts without truncating them. The independent `consumer-tests/` crate
+exercises transport borrowing without enabling the Substreams runtime.
 
 ## Bounds and checks
 

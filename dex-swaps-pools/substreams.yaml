@@ -3,7 +3,7 @@ package:
   name: dex_swaps_pools
   version: v0.1.0
   url: https://github.com/pinax-network/substreams-svm
-  description: Verified Pump.fun AMM and Orca Whirlpool pool identities for Hosted Store and legacy Substreams stores.
+  description: Verified DEX pool, market and bonding-curve identities for Hosted Store and legacy stores; see the coverage checklist for supported layouts.
   image: ../image.png
 
 imports:

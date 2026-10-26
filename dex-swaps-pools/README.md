@@ -1,8 +1,9 @@
 # Solana pool identities: legacy and Hosted Stores
 
 The `dex_swaps_pools` package provides both a legacy Substreams key-value store
-and a **Substreams-feed Hosted Store** producer for verified Pump.fun AMM and
-Orca Whirlpool pool identities. One shared map, `map_pool_creations`, reads
+and a **Substreams-feed Hosted Store** producer for verified DEX pool, market and bonding-curve identities. See the
+[complete coverage checklist](../docs/pool-decoder-coverage.md) for implemented
+protocols and remaining gaps; coverage is not yet every advertised DEX. One shared map, `map_pool_creations`, reads
 `solana_common:blocks_without_votes` and decodes through the native
 [`dex-pools`](../dex-pools) library. It imports no protocol-specific Substreams
 maps and performs no RPC or store reads.
@@ -39,16 +40,20 @@ store enriches or updates an existing identity.
 ## Shared value contract
 
 The value schema is [`dex.pools.v1.Pool`](../proto/v1/dex-pools.proto); map outputs
-use the `dex.pools.v1.Pools` container. Token order is protocol order: Pump.fun
-base/quote and Orca A/B. It is never the direction of a swap. Missing optional
+use the `dex.pools.v1.Pools` container. Token order is the full protocol creation order, including every Stabble
+underlying mint. Native SOL has an explicit `is_native` flag; unknown optional
+metadata remains absent. It is never the direction of a swap. Missing optional
 metadata stays absent; zero decimals is a valid known value.
 
-Values include the initialization invocation, event evidence, slot, block hash
-and transaction signature. `input_transaction_index` refers to the supplied
+Values include the initialization invocation, slot, block hash and transaction
+signature. Evidence identifies either the proved initializer itself or a matching
+event instruction/log. `input_transaction_index` refers to the supplied
 block array; after vote filtering it is not the original full-block transaction
 index. Use the signature and instruction position for identity.
 
 Only successfully committed, attributable initialization records are admitted.
+The evidence distinguishes an initialization-only record from a matching event;
+event-derived decimals are not invented for initialization-only records.
 Missing/truncated/inconsistent invocation evidence produces no pool record;
 malformed supported block structures and capacity violations are errors. See the
 [native decoder](../dex-pools/README.md) for exact supported variants and fixture
@@ -149,7 +154,8 @@ adapters only encode and route its verified records.
 
 firehose-parquet and pinax-streams should depend on `dex-pools`, without this
 wrapper, to avoid the Substreams runtime and storage concerns. The native crate's
-`project`, `project_with_limits` and `decode_pool_creation` exports are unchanged
-by the choice of store. See its README and isolated consumer tests for Buffa and
+`project`, `project_with_limits`, matched-event `decode_pool_creation`, and the
+initialization decoders (with optional token-account context) are independent of
+the choice of store. See its README and isolated consumer tests for Buffa and
 Prost `Bytes` examples. Existing downstream pipelines are not changed by this
 package.

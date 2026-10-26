@@ -1,11 +1,13 @@
 //! Pool creation projection, with no Substreams execution, store or RPC calls.
-//! [`project`] admits only matched initialization/event evidence in a completely
-//! proved successful invocation trace. [`decode_pool_creation`] returns an
-//! unverified candidate for callers that own a different transport model.
+//! [`project`] admits typed initialization identity, optionally enriched by a
+//! matching event, only after proving successful invocation ancestry. Raw
+//! decoding exports return unverified candidates for other transport models.
 mod decode;
+mod initialization;
 
 pub use common::invocation::InstructionPosition;
 pub use decode::decode_pool_creation;
+pub use initialization::{decode_pool_initialization, decode_pool_initialization_with_token_accounts, TokenAccountMetadata};
 pub use substreams_solana_core as solana;
 pub use substreams_solana_core::pb::sf::solana::r#type::v1::Block;
 
@@ -16,21 +18,53 @@ use substreams_solana_idls::{orca::whirlpool, pumpfun::amm};
 
 spl_transfers::block_view_buffa!(fn view_block, solana::pb::sf::solana::r#type::v1);
 
+/// Normalized SOL asset identifier. Native SOL has `is_native=true`; wrapped SOL
+/// uses these same mint bytes with `is_native=false` and an SPL token program.
+pub const NATIVE_SOL_MINT: [u8; 32] = [
+    6, 155, 136, 87, 254, 171, 129, 132, 251, 104, 127, 99, 70, 24, 192, 53, 218, 196, 57, 220, 26, 235, 59, 85, 152, 160, 240, 0, 0, 0, 0, 1,
+];
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(i32)]
 pub enum Protocol {
-    PumpfunAmm,
-    OrcaWhirlpool,
+    PumpfunAmm = 1,
+    OrcaWhirlpool = 2,
+    RaydiumAmmV4 = 3,
+    RaydiumClmm = 4,
+    RaydiumCpmm = 5,
+    MeteoraAmm = 6,
+    MeteoraDlmm = 7,
+    MeteoraDaam = 8,
+    Bonkswap = 9,
+    PumpfunBondingCurve = 10,
+    Openbook = 11,
+    Byreal = 12,
+    Pancakeswap = 13,
+    RaydiumLaunchpad = 14,
+    Phoenix = 15,
+    Moonshot = 16,
+    Darklake = 17,
+    Plasma = 18,
+    Serum = 19,
+    SplTokenSwap = 20,
+    Saros = 21,
+    Stabble = 22,
+    Boop = 23,
+    Dumpfun = 24,
+    Aldrin = 25,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Token {
+    /// Distinguishes native SOL from a token mint or an unknown token program.
+    pub is_native: bool,
     pub mint: [u8; 32],
     pub vault: Option<[u8; 32]>,
     pub decimals: Option<u8>,
     pub token_program: Option<[u8; 32]>,
 }
 
-/// Matched typed initialization and event fields, without execution proof.
+/// Typed initialization identity, optionally matched with event fields, without execution proof.
 /// Never write this directly to a canonical store: the transaction and every
 /// enclosing invocation must also have committed successfully.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,14 +72,18 @@ pub struct Candidate {
     pub protocol: Protocol,
     pub address: [u8; 32],
     pub program_id: [u8; 32],
-    /// Protocol order (Pump base/quote, Orca A/B), never swap direction.
-    pub tokens: [Token; 2],
+    /// Protocol creation order (including all weighted-pool mints), never swap direction.
+    pub tokens: Vec<Token>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EvidencePosition {
+    /// The typed initialization itself committed; no event metadata was used.
+    Initialization,
     Instruction(InstructionPosition),
-    Log { log_index: u32 },
+    Log {
+        log_index: u32,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -67,7 +105,7 @@ pub struct Pool {
     pub protocol: Protocol,
     pub address: [u8; 32],
     pub program_id: [u8; 32],
-    pub tokens: [Token; 2],
+    pub tokens: Vec<Token>,
     pub creation: Creation,
 }
 
@@ -143,10 +181,11 @@ pub fn project_with_limits(block: &Block, limits: Limits) -> Result<Projection, 
             continue;
         }
         // Avoid allocating a full trace for transactions outside our coverage.
-        if !tx
-            .walk_instructions()
-            .any(|ix| ix.program_id().0.as_slice() == amm::PROGRAM_ID || ix.program_id().0.as_slice() == whirlpool::PROGRAM_ID)
-        {
+        if !tx.walk_instructions().any(|ix| {
+            ix.program_id().0.as_slice() == amm::PROGRAM_ID
+                || ix.program_id().0.as_slice() == whirlpool::PROGRAM_ID
+                || initialization::supports(ix.program_id().0.as_slice())
+        }) {
             continue;
         }
         let Some(trace) = invocation::prove(tx) else { continue };
@@ -178,6 +217,29 @@ pub fn project_with_limits(block: &Block, limits: Limits) -> Result<Projection, 
             pools.insert(pool.address, pool);
             Ok(())
         };
+        let token_accounts = if instructions
+            .values()
+            .any(|ix| initialization::needs_token_accounts(ix.program_id().0.as_slice()))
+        {
+            initialization::TokenAccounts::from_transaction(tx)
+        } else {
+            initialization::TokenAccounts::default()
+        };
+        // Other venues expose complete identity in their typed initialization
+        // accounts. Admission requires that initialization and every ancestor
+        // committed; no creation event or token decimals are invented.
+        for (position, ix) in &instructions {
+            if !trace
+                .evidence
+                .get(position)
+                .is_some_and(|evidence| evidence.outcome == InvocationOutcome::Succeeded)
+            {
+                continue;
+            }
+            if let Some(candidate) = initialization::from_view_with_tokens(ix, &token_accounts) {
+                admit(candidate, *position, EvidencePosition::Initialization)?;
+            }
+        }
         // Pump emits Anchor event self-CPIs. Only the actual immediate parent
         // initialization can supply its accounts; never use FIFO/global state.
         for (position, event_ix) in &instructions {

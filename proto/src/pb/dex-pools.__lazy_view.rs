@@ -779,6 +779,10 @@ pub struct TokenLazyView<'a> {
     pub decimals: ::core::option::Option<u32>,
     /// Field 4: `token_program`
     pub token_program: ::core::option::Option<&'a [u8]>,
+    /// True only for native SOL; mint then uses the documented native asset sentinel.
+    ///
+    /// Field 5: `is_native`
+    pub is_native: bool,
 }
 impl<'a> TokenLazyView<'a> {
     /// Decode from `buf` under the limits carried by `ctx`, recording
@@ -839,6 +843,13 @@ impl<'a> TokenLazyView<'a> {
                     )?;
                     view.token_program = Some(::buffa::types::borrow_bytes(&mut cur)?);
                 }
+                5u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::Varint,
+                    )?;
+                    view.is_native = ::buffa::types::decode_bool(&mut cur)?;
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -886,6 +897,7 @@ impl<'a> ::buffa::LazyMessageView<'a> for TokenLazyView<'a> {
             vault: self.vault.map(|b| (b).to_vec()),
             decimals: self.decimals,
             token_program: self.token_program.map(|b| (b).to_vec()),
+            is_native: self.is_native,
             ..::core::default::Default::default()
         })
     }
@@ -921,6 +933,9 @@ impl<'a> TokenLazyView<'a> {
         if let Some(ref v) = self.token_program {
             size += 1u64 + ::buffa::types::bytes_encoded_len(v) as u64;
         }
+        if self.is_native {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         ::buffa::saturate_size(size)
     }
     /// Write the encoded bytes to `buf`, reading per-message sizes
@@ -947,6 +962,9 @@ impl<'a> TokenLazyView<'a> {
         }
         if let Some(ref v) = self.token_program {
             ::buffa::types::put_shared_bytes_field(4u32, v, buf);
+        }
+        if self.is_native {
+            ::buffa::types::put_bool_field(5u32, self.is_native, buf);
         }
     }
     /// Compute size, then write. Primary encode entry point.
@@ -1591,6 +1609,17 @@ impl<'a> CreationLazyView<'a> {
                         ),
                     );
                 }
+                8u32 => {
+                    ::buffa::encoding::check_wire_type(
+                        tag,
+                        ::buffa::encoding::WireType::Varint,
+                    )?;
+                    view.evidence = Some(
+                        super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                            ::buffa::types::decode_bool(&mut cur)?,
+                        ),
+                    );
+                }
                 _ => {
                     ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 }
@@ -1667,6 +1696,13 @@ impl<'a> ::buffa::LazyMessageView<'a> for CreationLazyView<'a> {
                                     *v,
                                 )
                             }
+                            super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                                v,
+                            ) => {
+                                super::super::__buffa::oneof::creation::Evidence::Initialization(
+                                    *v,
+                                )
+                            }
                         },
                     )
                 }
@@ -1730,6 +1766,11 @@ impl<'a> CreationLazyView<'a> {
                 super::super::__buffa::view::oneof::creation::Evidence::LogIndex(v) => {
                     size += 1u64 + ::buffa::types::uint32_encoded_len(*v) as u64;
                 }
+                super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                    _x,
+                ) => {
+                    size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+                }
             }
         }
         ::buffa::saturate_size(size)
@@ -1782,6 +1823,11 @@ impl<'a> CreationLazyView<'a> {
                 }
                 super::super::__buffa::view::oneof::creation::Evidence::LogIndex(x) => {
                     ::buffa::types::put_uint32_field(7u32, *x, buf);
+                }
+                super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                    x,
+                ) => {
+                    ::buffa::types::put_bool_field(8u32, *x, buf);
                 }
             }
         }

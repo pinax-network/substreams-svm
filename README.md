@@ -21,7 +21,7 @@ For a practical contributor map, start here:
 - `proto/`: shared protobuf schemas
 - `spl/transfers/`: native, storage-independent SPL transfer projector (no Substreams runtime), wrapped by `spl/transfers-substreams`
 - `common/`: shared Rust helpers
-- `dex-pools/`: reusable native Pump.fun AMM and Orca pool-creation decoder
+- `dex-pools/`: reusable native DEX pool, market and bonding-curve creation decoder
 - `dex-swaps-pools/`: one shared no-vote block decoder feeding legacy and Hosted Stores
 - `spkg/`: local SPKG dependencies used by aggregate packages
 
@@ -34,7 +34,8 @@ For a practical contributor map, start here:
 The [`dex_swaps_pools`](dex-swaps-pools/README.md) package also exposes the legacy
 `store_pools` key-value store and `map_pools` new-pool stream. Its shared
 `map_pool_creations` output feeds both that store and the independent Hosted
-Store producer, `map_pool_entries`.
+Store producer, `map_pool_entries`. See the [coverage checklist](docs/pool-decoder-coverage.md)
+for implemented protocols and the remaining gaps.
 
 ## Aggregate Domain Packages (`svm-*`)
 

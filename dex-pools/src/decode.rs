@@ -19,10 +19,19 @@ use substreams_solana_idls::{
 /// [`crate::project`] for complete block evidence admission.
 /// Unsupported, malformed, mismatched and oversized inputs return `None`.
 pub fn decode_pool_creation(program_id: &[u8], instruction_data: &[u8], accounts: &[&[u8]], event_data: &[u8]) -> Option<Candidate> {
-    if program_id != pump::PROGRAM_ID && program_id != orca::PROGRAM_ID {
+    if program_id != pump::PROGRAM_ID && program_id != orca::PROGRAM_ID || event_data.len() > 2048 || accounts.len() > 32 {
         return None;
     }
-    if accounts.len() > 32 || accounts.iter().any(|account| account.len() != 32) || instruction_data.len() > 2048 || event_data.len() > 2048 {
+    with_instruction(program_id, instruction_data, accounts, |ix| from_view(ix, event_data))
+}
+
+pub(crate) fn with_instruction<T>(
+    program_id: &[u8],
+    instruction_data: &[u8],
+    accounts: &[&[u8]],
+    decode: impl FnOnce(&InstructionView<'_>) -> Option<T>,
+) -> Option<T> {
+    if program_id.len() != 32 || accounts.len() > 255 || accounts.iter().any(|account| account.len() != 32) || instruction_data.len() > 2048 {
         return None;
     }
     let mut account_keys = Vec::with_capacity(accounts.len() + 1);
@@ -44,7 +53,7 @@ pub fn decode_pool_creation(program_id: &[u8], instruction_data: &[u8], accounts
         ..Default::default()
     };
     let instruction = tx.walk_instructions().next()?;
-    from_view(&instruction, event_data)
+    decode(&instruction)
 }
 
 pub(crate) fn from_view(ix: &InstructionView<'_>, event: &[u8]) -> Option<Candidate> {
@@ -58,22 +67,31 @@ pub(crate) fn from_view(ix: &InstructionView<'_>, event: &[u8]) -> Option<Candid
     } else {
         None
     }?;
-    if candidate.address == [0; 32] || candidate.address == candidate.program_id || candidate.tokens[0].mint == candidate.tokens[1].mint {
+    validate(candidate)
+}
+
+pub(crate) fn validate(candidate: Candidate) -> Option<Candidate> {
+    if candidate.address == [0; 32] || candidate.address == candidate.program_id || candidate.tokens.len() < 2 || candidate.tokens.len() > 32 {
         return None;
     }
+    let mut mints = std::collections::BTreeSet::new();
+    let mut vaults = std::collections::BTreeSet::new();
     for token in &candidate.tokens {
-        if token.mint == [0; 32] || token.mint == candidate.address || token.vault == Some([0; 32]) {
+        if token.mint == [0; 32] || token.mint == candidate.address || !mints.insert(token.mint) || token.vault == Some([0; 32]) {
             return None;
         }
-        if !token
+        if token
             .token_program
-            .is_some_and(|program| program == token::PROGRAM_ID || program == token_2022::PROGRAM_ID)
+            .is_some_and(|program| program != token::PROGRAM_ID && program != token_2022::PROGRAM_ID)
         {
             return None;
         }
-    }
-    if candidate.tokens[0].vault.is_some() && candidate.tokens[0].vault == candidate.tokens[1].vault {
-        return None;
+        if token.is_native && (token.mint != crate::NATIVE_SOL_MINT || token.decimals != Some(9) || token.token_program.is_some() || token.vault.is_some()) {
+            return None;
+        }
+        if token.vault.is_some_and(|vault| !vaults.insert(vault)) {
+            return None;
+        }
     }
     Some(candidate)
 }
@@ -114,14 +132,16 @@ fn pump_pool(ix: &InstructionView<'_>, data: &[u8]) -> Option<Candidate> {
         protocol: Protocol::PumpfunAmm,
         address: event.pool.to_bytes(),
         program_id: pump::PROGRAM_ID,
-        tokens: [
+        tokens: vec![
             Token {
+                is_native: false,
                 mint: event.base_mint.to_bytes(),
                 vault: Some(accounts.pool_base_token_account.to_bytes()),
                 decimals: Some(event.base_mint_decimals),
                 token_program: Some(accounts.base_token_program.to_bytes()),
             },
             Token {
+                is_native: false,
                 mint: event.quote_mint.to_bytes(),
                 vault: Some(accounts.pool_quote_token_account.to_bytes()),
                 decimals: Some(event.quote_mint_decimals),
@@ -198,14 +218,16 @@ fn orca_pool(ix: &InstructionView<'_>, data: &[u8]) -> Option<Candidate> {
         protocol: Protocol::OrcaWhirlpool,
         address: pool.to_bytes(),
         program_id: orca::PROGRAM_ID,
-        tokens: [
+        tokens: vec![
             Token {
+                is_native: false,
                 mint: mint_a.to_bytes(),
                 vault: Some(vault_a.to_bytes()),
                 decimals: Some(event.decimals_a),
                 token_program: Some(program_a.to_bytes()),
             },
             Token {
+                is_native: false,
                 mint: mint_b.to_bytes(),
                 vault: Some(vault_b.to_bytes()),
                 decimals: Some(event.decimals_b),

@@ -8,6 +8,29 @@ pub enum Protocol {
     PROTOCOL_UNSPECIFIED = 0i32,
     PROTOCOL_PUMPFUN_AMM = 1i32,
     PROTOCOL_ORCA_WHIRLPOOL = 2i32,
+    PROTOCOL_RAYDIUM_AMM_V4 = 3i32,
+    PROTOCOL_RAYDIUM_CLMM = 4i32,
+    PROTOCOL_RAYDIUM_CPMM = 5i32,
+    PROTOCOL_METEORA_AMM = 6i32,
+    PROTOCOL_METEORA_DLMM = 7i32,
+    PROTOCOL_METEORA_DAAM = 8i32,
+    PROTOCOL_BONKSWAP = 9i32,
+    PROTOCOL_PUMPFUN_BONDING_CURVE = 10i32,
+    PROTOCOL_OPENBOOK = 11i32,
+    PROTOCOL_BYREAL = 12i32,
+    PROTOCOL_PANCAKESWAP = 13i32,
+    PROTOCOL_RAYDIUM_LAUNCHPAD = 14i32,
+    PROTOCOL_PHOENIX = 15i32,
+    PROTOCOL_MOONSHOT = 16i32,
+    PROTOCOL_DARKLAKE = 17i32,
+    PROTOCOL_PLASMA = 18i32,
+    PROTOCOL_SERUM = 19i32,
+    PROTOCOL_SPL_TOKEN_SWAP = 20i32,
+    PROTOCOL_SAROS = 21i32,
+    PROTOCOL_STABBLE = 22i32,
+    PROTOCOL_BOOP = 23i32,
+    PROTOCOL_DUMPFUN = 24i32,
+    PROTOCOL_ALDRIN = 25i32,
 }
 impl Protocol {
     ///Idiomatic alias for [`Self::PROTOCOL_UNSPECIFIED`]; `Debug` prints the variant name.
@@ -19,6 +42,75 @@ impl Protocol {
     ///Idiomatic alias for [`Self::PROTOCOL_ORCA_WHIRLPOOL`]; `Debug` prints the variant name.
     #[allow(non_upper_case_globals)]
     pub const OrcaWhirlpool: Self = Self::PROTOCOL_ORCA_WHIRLPOOL;
+    ///Idiomatic alias for [`Self::PROTOCOL_RAYDIUM_AMM_V4`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const RaydiumAmmV4: Self = Self::PROTOCOL_RAYDIUM_AMM_V4;
+    ///Idiomatic alias for [`Self::PROTOCOL_RAYDIUM_CLMM`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const RaydiumClmm: Self = Self::PROTOCOL_RAYDIUM_CLMM;
+    ///Idiomatic alias for [`Self::PROTOCOL_RAYDIUM_CPMM`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const RaydiumCpmm: Self = Self::PROTOCOL_RAYDIUM_CPMM;
+    ///Idiomatic alias for [`Self::PROTOCOL_METEORA_AMM`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const MeteoraAmm: Self = Self::PROTOCOL_METEORA_AMM;
+    ///Idiomatic alias for [`Self::PROTOCOL_METEORA_DLMM`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const MeteoraDlmm: Self = Self::PROTOCOL_METEORA_DLMM;
+    ///Idiomatic alias for [`Self::PROTOCOL_METEORA_DAAM`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const MeteoraDaam: Self = Self::PROTOCOL_METEORA_DAAM;
+    ///Idiomatic alias for [`Self::PROTOCOL_BONKSWAP`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Bonkswap: Self = Self::PROTOCOL_BONKSWAP;
+    ///Idiomatic alias for [`Self::PROTOCOL_PUMPFUN_BONDING_CURVE`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const PumpfunBondingCurve: Self = Self::PROTOCOL_PUMPFUN_BONDING_CURVE;
+    ///Idiomatic alias for [`Self::PROTOCOL_OPENBOOK`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Openbook: Self = Self::PROTOCOL_OPENBOOK;
+    ///Idiomatic alias for [`Self::PROTOCOL_BYREAL`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Byreal: Self = Self::PROTOCOL_BYREAL;
+    ///Idiomatic alias for [`Self::PROTOCOL_PANCAKESWAP`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Pancakeswap: Self = Self::PROTOCOL_PANCAKESWAP;
+    ///Idiomatic alias for [`Self::PROTOCOL_RAYDIUM_LAUNCHPAD`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const RaydiumLaunchpad: Self = Self::PROTOCOL_RAYDIUM_LAUNCHPAD;
+    ///Idiomatic alias for [`Self::PROTOCOL_PHOENIX`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Phoenix: Self = Self::PROTOCOL_PHOENIX;
+    ///Idiomatic alias for [`Self::PROTOCOL_MOONSHOT`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Moonshot: Self = Self::PROTOCOL_MOONSHOT;
+    ///Idiomatic alias for [`Self::PROTOCOL_DARKLAKE`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Darklake: Self = Self::PROTOCOL_DARKLAKE;
+    ///Idiomatic alias for [`Self::PROTOCOL_PLASMA`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Plasma: Self = Self::PROTOCOL_PLASMA;
+    ///Idiomatic alias for [`Self::PROTOCOL_SERUM`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Serum: Self = Self::PROTOCOL_SERUM;
+    ///Idiomatic alias for [`Self::PROTOCOL_SPL_TOKEN_SWAP`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const SplTokenSwap: Self = Self::PROTOCOL_SPL_TOKEN_SWAP;
+    ///Idiomatic alias for [`Self::PROTOCOL_SAROS`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Saros: Self = Self::PROTOCOL_SAROS;
+    ///Idiomatic alias for [`Self::PROTOCOL_STABBLE`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Stabble: Self = Self::PROTOCOL_STABBLE;
+    ///Idiomatic alias for [`Self::PROTOCOL_BOOP`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Boop: Self = Self::PROTOCOL_BOOP;
+    ///Idiomatic alias for [`Self::PROTOCOL_DUMPFUN`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Dumpfun: Self = Self::PROTOCOL_DUMPFUN;
+    ///Idiomatic alias for [`Self::PROTOCOL_ALDRIN`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Aldrin: Self = Self::PROTOCOL_ALDRIN;
 }
 impl ::core::default::Default for Protocol {
     fn default() -> Self {
@@ -31,6 +123,29 @@ impl ::buffa::Enumeration for Protocol {
             0i32 => ::core::option::Option::Some(Self::PROTOCOL_UNSPECIFIED),
             1i32 => ::core::option::Option::Some(Self::PROTOCOL_PUMPFUN_AMM),
             2i32 => ::core::option::Option::Some(Self::PROTOCOL_ORCA_WHIRLPOOL),
+            3i32 => ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_AMM_V4),
+            4i32 => ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_CLMM),
+            5i32 => ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_CPMM),
+            6i32 => ::core::option::Option::Some(Self::PROTOCOL_METEORA_AMM),
+            7i32 => ::core::option::Option::Some(Self::PROTOCOL_METEORA_DLMM),
+            8i32 => ::core::option::Option::Some(Self::PROTOCOL_METEORA_DAAM),
+            9i32 => ::core::option::Option::Some(Self::PROTOCOL_BONKSWAP),
+            10i32 => ::core::option::Option::Some(Self::PROTOCOL_PUMPFUN_BONDING_CURVE),
+            11i32 => ::core::option::Option::Some(Self::PROTOCOL_OPENBOOK),
+            12i32 => ::core::option::Option::Some(Self::PROTOCOL_BYREAL),
+            13i32 => ::core::option::Option::Some(Self::PROTOCOL_PANCAKESWAP),
+            14i32 => ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_LAUNCHPAD),
+            15i32 => ::core::option::Option::Some(Self::PROTOCOL_PHOENIX),
+            16i32 => ::core::option::Option::Some(Self::PROTOCOL_MOONSHOT),
+            17i32 => ::core::option::Option::Some(Self::PROTOCOL_DARKLAKE),
+            18i32 => ::core::option::Option::Some(Self::PROTOCOL_PLASMA),
+            19i32 => ::core::option::Option::Some(Self::PROTOCOL_SERUM),
+            20i32 => ::core::option::Option::Some(Self::PROTOCOL_SPL_TOKEN_SWAP),
+            21i32 => ::core::option::Option::Some(Self::PROTOCOL_SAROS),
+            22i32 => ::core::option::Option::Some(Self::PROTOCOL_STABBLE),
+            23i32 => ::core::option::Option::Some(Self::PROTOCOL_BOOP),
+            24i32 => ::core::option::Option::Some(Self::PROTOCOL_DUMPFUN),
+            25i32 => ::core::option::Option::Some(Self::PROTOCOL_ALDRIN),
             _ => ::core::option::Option::None,
         }
     }
@@ -42,6 +157,29 @@ impl ::buffa::Enumeration for Protocol {
             Self::PROTOCOL_UNSPECIFIED => "PROTOCOL_UNSPECIFIED",
             Self::PROTOCOL_PUMPFUN_AMM => "PROTOCOL_PUMPFUN_AMM",
             Self::PROTOCOL_ORCA_WHIRLPOOL => "PROTOCOL_ORCA_WHIRLPOOL",
+            Self::PROTOCOL_RAYDIUM_AMM_V4 => "PROTOCOL_RAYDIUM_AMM_V4",
+            Self::PROTOCOL_RAYDIUM_CLMM => "PROTOCOL_RAYDIUM_CLMM",
+            Self::PROTOCOL_RAYDIUM_CPMM => "PROTOCOL_RAYDIUM_CPMM",
+            Self::PROTOCOL_METEORA_AMM => "PROTOCOL_METEORA_AMM",
+            Self::PROTOCOL_METEORA_DLMM => "PROTOCOL_METEORA_DLMM",
+            Self::PROTOCOL_METEORA_DAAM => "PROTOCOL_METEORA_DAAM",
+            Self::PROTOCOL_BONKSWAP => "PROTOCOL_BONKSWAP",
+            Self::PROTOCOL_PUMPFUN_BONDING_CURVE => "PROTOCOL_PUMPFUN_BONDING_CURVE",
+            Self::PROTOCOL_OPENBOOK => "PROTOCOL_OPENBOOK",
+            Self::PROTOCOL_BYREAL => "PROTOCOL_BYREAL",
+            Self::PROTOCOL_PANCAKESWAP => "PROTOCOL_PANCAKESWAP",
+            Self::PROTOCOL_RAYDIUM_LAUNCHPAD => "PROTOCOL_RAYDIUM_LAUNCHPAD",
+            Self::PROTOCOL_PHOENIX => "PROTOCOL_PHOENIX",
+            Self::PROTOCOL_MOONSHOT => "PROTOCOL_MOONSHOT",
+            Self::PROTOCOL_DARKLAKE => "PROTOCOL_DARKLAKE",
+            Self::PROTOCOL_PLASMA => "PROTOCOL_PLASMA",
+            Self::PROTOCOL_SERUM => "PROTOCOL_SERUM",
+            Self::PROTOCOL_SPL_TOKEN_SWAP => "PROTOCOL_SPL_TOKEN_SWAP",
+            Self::PROTOCOL_SAROS => "PROTOCOL_SAROS",
+            Self::PROTOCOL_STABBLE => "PROTOCOL_STABBLE",
+            Self::PROTOCOL_BOOP => "PROTOCOL_BOOP",
+            Self::PROTOCOL_DUMPFUN => "PROTOCOL_DUMPFUN",
+            Self::PROTOCOL_ALDRIN => "PROTOCOL_ALDRIN",
         }
     }
     fn from_proto_name(name: &str) -> ::core::option::Option<Self> {
@@ -55,6 +193,49 @@ impl ::buffa::Enumeration for Protocol {
             "PROTOCOL_ORCA_WHIRLPOOL" => {
                 ::core::option::Option::Some(Self::PROTOCOL_ORCA_WHIRLPOOL)
             }
+            "PROTOCOL_RAYDIUM_AMM_V4" => {
+                ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_AMM_V4)
+            }
+            "PROTOCOL_RAYDIUM_CLMM" => {
+                ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_CLMM)
+            }
+            "PROTOCOL_RAYDIUM_CPMM" => {
+                ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_CPMM)
+            }
+            "PROTOCOL_METEORA_AMM" => {
+                ::core::option::Option::Some(Self::PROTOCOL_METEORA_AMM)
+            }
+            "PROTOCOL_METEORA_DLMM" => {
+                ::core::option::Option::Some(Self::PROTOCOL_METEORA_DLMM)
+            }
+            "PROTOCOL_METEORA_DAAM" => {
+                ::core::option::Option::Some(Self::PROTOCOL_METEORA_DAAM)
+            }
+            "PROTOCOL_BONKSWAP" => ::core::option::Option::Some(Self::PROTOCOL_BONKSWAP),
+            "PROTOCOL_PUMPFUN_BONDING_CURVE" => {
+                ::core::option::Option::Some(Self::PROTOCOL_PUMPFUN_BONDING_CURVE)
+            }
+            "PROTOCOL_OPENBOOK" => ::core::option::Option::Some(Self::PROTOCOL_OPENBOOK),
+            "PROTOCOL_BYREAL" => ::core::option::Option::Some(Self::PROTOCOL_BYREAL),
+            "PROTOCOL_PANCAKESWAP" => {
+                ::core::option::Option::Some(Self::PROTOCOL_PANCAKESWAP)
+            }
+            "PROTOCOL_RAYDIUM_LAUNCHPAD" => {
+                ::core::option::Option::Some(Self::PROTOCOL_RAYDIUM_LAUNCHPAD)
+            }
+            "PROTOCOL_PHOENIX" => ::core::option::Option::Some(Self::PROTOCOL_PHOENIX),
+            "PROTOCOL_MOONSHOT" => ::core::option::Option::Some(Self::PROTOCOL_MOONSHOT),
+            "PROTOCOL_DARKLAKE" => ::core::option::Option::Some(Self::PROTOCOL_DARKLAKE),
+            "PROTOCOL_PLASMA" => ::core::option::Option::Some(Self::PROTOCOL_PLASMA),
+            "PROTOCOL_SERUM" => ::core::option::Option::Some(Self::PROTOCOL_SERUM),
+            "PROTOCOL_SPL_TOKEN_SWAP" => {
+                ::core::option::Option::Some(Self::PROTOCOL_SPL_TOKEN_SWAP)
+            }
+            "PROTOCOL_SAROS" => ::core::option::Option::Some(Self::PROTOCOL_SAROS),
+            "PROTOCOL_STABBLE" => ::core::option::Option::Some(Self::PROTOCOL_STABBLE),
+            "PROTOCOL_BOOP" => ::core::option::Option::Some(Self::PROTOCOL_BOOP),
+            "PROTOCOL_DUMPFUN" => ::core::option::Option::Some(Self::PROTOCOL_DUMPFUN),
+            "PROTOCOL_ALDRIN" => ::core::option::Option::Some(Self::PROTOCOL_ALDRIN),
             _ => ::core::option::Option::None,
         }
     }
@@ -63,6 +244,29 @@ impl ::buffa::Enumeration for Protocol {
             Self::PROTOCOL_UNSPECIFIED,
             Self::PROTOCOL_PUMPFUN_AMM,
             Self::PROTOCOL_ORCA_WHIRLPOOL,
+            Self::PROTOCOL_RAYDIUM_AMM_V4,
+            Self::PROTOCOL_RAYDIUM_CLMM,
+            Self::PROTOCOL_RAYDIUM_CPMM,
+            Self::PROTOCOL_METEORA_AMM,
+            Self::PROTOCOL_METEORA_DLMM,
+            Self::PROTOCOL_METEORA_DAAM,
+            Self::PROTOCOL_BONKSWAP,
+            Self::PROTOCOL_PUMPFUN_BONDING_CURVE,
+            Self::PROTOCOL_OPENBOOK,
+            Self::PROTOCOL_BYREAL,
+            Self::PROTOCOL_PANCAKESWAP,
+            Self::PROTOCOL_RAYDIUM_LAUNCHPAD,
+            Self::PROTOCOL_PHOENIX,
+            Self::PROTOCOL_MOONSHOT,
+            Self::PROTOCOL_DARKLAKE,
+            Self::PROTOCOL_PLASMA,
+            Self::PROTOCOL_SERUM,
+            Self::PROTOCOL_SPL_TOKEN_SWAP,
+            Self::PROTOCOL_SAROS,
+            Self::PROTOCOL_STABBLE,
+            Self::PROTOCOL_BOOP,
+            Self::PROTOCOL_DUMPFUN,
+            Self::PROTOCOL_ALDRIN,
         ]
     }
 }
@@ -366,6 +570,10 @@ pub struct Token {
     pub decimals: ::core::option::Option<u32>,
     /// Field 4: `token_program`
     pub token_program: ::core::option::Option<::buffa::alloc::vec::Vec<u8>>,
+    /// True only for native SOL; mint then uses the documented native asset sentinel.
+    ///
+    /// Field 5: `is_native`
+    pub is_native: bool,
 }
 impl ::core::fmt::Debug for Token {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -374,6 +582,7 @@ impl ::core::fmt::Debug for Token {
             .field("vault", &self.vault)
             .field("decimals", &self.decimals)
             .field("token_program", &self.token_program)
+            .field("is_native", &self.is_native)
             .finish()
     }
 }
@@ -442,6 +651,9 @@ impl ::buffa::Message for Token {
         if let Some(ref v) = self.token_program {
             size += 1u64 + ::buffa::types::bytes_encoded_len(v) as u64;
         }
+        if self.is_native {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         ::buffa::saturate_size(size)
     }
     fn write_to(
@@ -462,6 +674,9 @@ impl ::buffa::Message for Token {
         }
         if let Some(ref v) = self.token_program {
             ::buffa::types::put_shared_bytes_field(4u32, v, buf);
+        }
+        if self.is_native {
+            ::buffa::types::put_bool_field(5u32, self.is_native, buf);
         }
     }
     fn merge_field(
@@ -511,6 +726,13 @@ impl ::buffa::Message for Token {
                     buf,
                 )?;
             }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.is_native = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, buf, ctx.depth())?;
             }
@@ -522,6 +744,7 @@ impl ::buffa::Message for Token {
         self.vault = ::core::option::Option::None;
         self.decimals = ::core::option::Option::None;
         self.token_program = ::core::option::Option::None;
+        self.is_native = false;
     }
 }
 #[derive(Clone, PartialEq, Default)]
@@ -734,6 +957,9 @@ impl ::buffa::Message for Creation {
                 __buffa::oneof::creation::Evidence::LogIndex(v) => {
                     size += 1u64 + ::buffa::types::uint32_encoded_len(*v) as u64;
                 }
+                __buffa::oneof::creation::Evidence::Initialization(_x) => {
+                    size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+                }
             }
         }
         ::buffa::saturate_size(size)
@@ -777,6 +1003,9 @@ impl ::buffa::Message for Creation {
                 }
                 __buffa::oneof::creation::Evidence::LogIndex(x) => {
                     ::buffa::types::put_uint32_field(7u32, *x, buf);
+                }
+                __buffa::oneof::creation::Evidence::Initialization(x) => {
+                    ::buffa::types::put_bool_field(8u32, *x, buf);
                 }
             }
         }
@@ -861,6 +1090,17 @@ impl ::buffa::Message for Creation {
                 self.evidence = ::core::option::Option::Some(
                     __buffa::oneof::creation::Evidence::LogIndex(
                         ::buffa::types::decode_uint32(buf)?,
+                    ),
+                );
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.evidence = ::core::option::Option::Some(
+                    __buffa::oneof::creation::Evidence::Initialization(
+                        ::buffa::types::decode_bool(buf)?,
                     ),
                 );
             }

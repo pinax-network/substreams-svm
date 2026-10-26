@@ -601,6 +601,10 @@ pub struct TokenView<'a> {
     pub decimals: ::core::option::Option<u32>,
     /// Field 4: `token_program`
     pub token_program: ::core::option::Option<&'a [u8]>,
+    /// True only for native SOL; mint then uses the documented native asset sentinel.
+    ///
+    /// Field 5: `is_native`
+    pub is_native: bool,
 }
 impl<'a> ::buffa::MessageView<'a> for TokenView<'a> {
     type Owned = super::super::Token;
@@ -660,6 +664,13 @@ impl<'a> ::buffa::MessageView<'a> for TokenView<'a> {
                 )?;
                 view.token_program = Some(::buffa::types::borrow_bytes(&mut cur)?);
             }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.is_native = ::buffa::types::decode_bool(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -684,6 +695,7 @@ impl<'a> ::buffa::MessageView<'a> for TokenView<'a> {
             vault: self.vault.map(|b| (b).to_vec()),
             decimals: self.decimals,
             token_program: self.token_program.map(|b| (b).to_vec()),
+            is_native: self.is_native,
             ..::core::default::Default::default()
         })
     }
@@ -706,6 +718,9 @@ impl<'a> ::buffa::ViewEncode<'a> for TokenView<'a> {
         if let Some(ref v) = self.token_program {
             size += 1u64 + ::buffa::types::bytes_encoded_len(v) as u64;
         }
+        if self.is_native {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
@@ -727,6 +742,9 @@ impl<'a> ::buffa::ViewEncode<'a> for TokenView<'a> {
         }
         if let Some(ref v) = self.token_program {
             ::buffa::types::put_shared_bytes_field(4u32, v, buf);
+        }
+        if self.is_native {
+            ::buffa::types::put_bool_field(5u32, self.is_native, buf);
         }
     }
 }
@@ -833,6 +851,13 @@ impl TokenOwnedView {
     #[must_use]
     pub fn token_program(&self) -> ::core::option::Option<&'_ [u8]> {
         self.0.reborrow().token_program
+    }
+    /// True only for native SOL; mint then uses the documented native asset sentinel.
+    ///
+    /// Field 5: `is_native`
+    #[must_use]
+    pub fn is_native(&self) -> bool {
+        self.0.reborrow().is_native
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<TokenView<'static>>> for TokenOwnedView {
@@ -1242,6 +1267,17 @@ impl<'a> ::buffa::MessageView<'a> for CreationView<'a> {
                     ),
                 );
             }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.evidence = Some(
+                    super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                        ::buffa::types::decode_bool(&mut cur)?,
+                    ),
+                );
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
             }
@@ -1292,6 +1328,13 @@ impl<'a> ::buffa::MessageView<'a> for CreationView<'a> {
                                 v,
                             ) => {
                                 super::super::__buffa::oneof::creation::Evidence::LogIndex(
+                                    *v,
+                                )
+                            }
+                            super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                                v,
+                            ) => {
+                                super::super::__buffa::oneof::creation::Evidence::Initialization(
                                     *v,
                                 )
                             }
@@ -1348,6 +1391,11 @@ impl<'a> ::buffa::ViewEncode<'a> for CreationView<'a> {
                 super::super::__buffa::view::oneof::creation::Evidence::LogIndex(v) => {
                     size += 1u64 + ::buffa::types::uint32_encoded_len(*v) as u64;
                 }
+                super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                    _x,
+                ) => {
+                    size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+                }
             }
         }
         ::buffa::saturate_size(size)
@@ -1394,6 +1442,11 @@ impl<'a> ::buffa::ViewEncode<'a> for CreationView<'a> {
                 }
                 super::super::__buffa::view::oneof::creation::Evidence::LogIndex(x) => {
                     ::buffa::types::put_uint32_field(7u32, *x, buf);
+                }
+                super::super::__buffa::view::oneof::creation::Evidence::Initialization(
+                    x,
+                ) => {
+                    ::buffa::types::put_bool_field(8u32, *x, buf);
                 }
             }
         }

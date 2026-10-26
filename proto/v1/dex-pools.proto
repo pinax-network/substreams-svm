@@ -23,6 +23,29 @@ enum Protocol {
   PROTOCOL_UNSPECIFIED = 0;
   PROTOCOL_PUMPFUN_AMM = 1;
   PROTOCOL_ORCA_WHIRLPOOL = 2;
+  PROTOCOL_RAYDIUM_AMM_V4 = 3;
+  PROTOCOL_RAYDIUM_CLMM = 4;
+  PROTOCOL_RAYDIUM_CPMM = 5;
+  PROTOCOL_METEORA_AMM = 6;
+  PROTOCOL_METEORA_DLMM = 7;
+  PROTOCOL_METEORA_DAAM = 8;
+  PROTOCOL_BONKSWAP = 9;
+  PROTOCOL_PUMPFUN_BONDING_CURVE = 10;
+  PROTOCOL_OPENBOOK = 11;
+  PROTOCOL_BYREAL = 12;
+  PROTOCOL_PANCAKESWAP = 13;
+  PROTOCOL_RAYDIUM_LAUNCHPAD = 14;
+  PROTOCOL_PHOENIX = 15;
+  PROTOCOL_MOONSHOT = 16;
+  PROTOCOL_DARKLAKE = 17;
+  PROTOCOL_PLASMA = 18;
+  PROTOCOL_SERUM = 19;
+  PROTOCOL_SPL_TOKEN_SWAP = 20;
+  PROTOCOL_SAROS = 21;
+  PROTOCOL_STABBLE = 22;
+  PROTOCOL_BOOP = 23;
+  PROTOCOL_DUMPFUN = 24;
+  PROTOCOL_ALDRIN = 25;
 }
 
 message Token {
@@ -30,6 +53,8 @@ message Token {
   optional bytes vault = 2;
   optional uint32 decimals = 3;
   optional bytes token_program = 4;
+  // True only for native SOL; mint then uses the documented native asset sentinel.
+  bool is_native = 5;
 }
 
 message InstructionPosition {
@@ -49,5 +74,7 @@ message Creation {
   oneof evidence {
     InstructionPosition event_instruction = 6;
     uint32 log_index = 7;
+    // The initialization instruction itself committed; no event metadata was used.
+    bool initialization = 8;
   }
 }

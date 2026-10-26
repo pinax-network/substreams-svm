@@ -12,14 +12,16 @@ fn projection() -> Projection {
             protocol: Protocol::PumpfunAmm,
             address: [1; 32],
             program_id: [2; 32],
-            tokens: [
+            tokens: vec![
                 Token {
+                    is_native: false,
                     mint: [3; 32],
                     vault: Some([4; 32]),
                     decimals: Some(0),
                     token_program: Some([5; 32]),
                 },
                 Token {
+                    is_native: false,
                     mint: [6; 32],
                     vault: None,
                     decimals: None,
@@ -112,4 +114,27 @@ fn legacy_delta_output_preserves_pool_payload_and_only_emits_creates() {
     let hosted = pool_entries(&creations);
     assert_eq!(output.pools[0].encode_to_vec(), hosted.entries[0].value.as_option().unwrap().value.as_ref());
     assert!(map_pools_impl(Deltas { deltas: vec![] }).pools.is_empty());
+}
+
+#[test]
+fn initialization_and_native_sol_are_explicit_in_both_payload_paths() {
+    let mut projection = projection();
+    let pool = &mut projection.pools[0];
+    pool.protocol = Protocol::PumpfunBondingCurve;
+    pool.creation.evidence = EvidencePosition::Initialization;
+    pool.tokens[1] = Token {
+        mint: dex_pools::NATIVE_SOL_MINT,
+        vault: None,
+        decimals: Some(9),
+        token_program: None,
+        is_native: true,
+    };
+    let creations = to_pool_creations(&projection);
+    let entries = pool_entries(&creations);
+    let decoded = pb::Pool::decode_from_slice(&entries.entries[0].value.value).unwrap();
+    assert_eq!(decoded.encode_to_vec(), creations.pools[0].encode_to_vec());
+    assert!(decoded.tokens[1].is_native);
+    assert_eq!(decoded.tokens[1].mint, dex_pools::NATIVE_SOL_MINT);
+    assert!(decoded.tokens[1].vault.is_none() && decoded.tokens[1].token_program.is_none());
+    assert!(matches!(decoded.creation.evidence, Some(pb::creation::Evidence::Initialization(true))));
 }

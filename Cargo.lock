@@ -625,6 +625,7 @@ dependencies = [
 name = "dex-swaps-pools"
 version = "0.1.0"
 dependencies = [
+ "borsh 1.5.7",
  "buffa",
  "buffa-types",
  "dex-pools",
@@ -633,6 +634,7 @@ dependencies = [
  "sha2 0.10.9",
  "substreams",
  "substreams-database-change",
+ "substreams-solana-idls",
  "wasmi",
 ]
 
@@ -3299,7 +3301,7 @@ dependencies = [
 [[package]]
 name = "substreams-solana-idls"
 version = "2.0.0"
-source = "git+https://github.com/pinax-network/substreams-solana-idls?rev=0e7f1d0e303fb7592353a2abe892000394ba4be6#0e7f1d0e303fb7592353a2abe892000394ba4be6"
+source = "git+https://github.com/pinax-network/substreams-solana-idls?rev=665035860128e892504c37e2bfa7b7b96063cd42#665035860128e892504c37e2bfa7b7b96063cd42"
 dependencies = [
  "base64 0.22.1",
  "borsh 1.5.7",

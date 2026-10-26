@@ -30,6 +30,13 @@ from the appropriate event instruction or decoded log. Preserve their original
 transaction/instruction/log positions in the caller. No protobuf re-encoding or
 conversion to a complete SDK block is required for this raw API.
 
+For initialization-only protocols, call `decode_pool_initialization`. When the
+initializer names custody accounts without their mints (SPL Token Swap, Saros
+and Aldrin), use `decode_pool_initialization_with_token_accounts` and supply
+metadata for those exact custody accounts. Conflicting metadata omits the
+candidate. The returned token vector preserves every underlying asset in the
+protocol's order, including pools with more than two assets.
+
 The result is an **unverified `Candidate`**, not a committed pool observation.
 Matching instruction and event fields alone does not prove that the event came
 from that instruction, that the invocation and its ancestors succeeded, or that
@@ -48,3 +55,6 @@ events and invalid account indices must be rejected. Byte-slice identity checks
 demonstrate that decoder inputs borrow from the original model. Captured current
 mainnet fixture qualification is tested separately by the producer package;
 these isolated tests establish the native export boundary.
+
+Additional tests exercise Stabble's three-asset initialization and SPL Token
+Swap with explicit vault metadata through both borrowed model families.

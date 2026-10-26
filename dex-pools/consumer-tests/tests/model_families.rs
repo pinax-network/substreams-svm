@@ -284,3 +284,102 @@ fn independent_consumer_rejects_mismatched_event_identity_and_invalid_account_in
     invalid_parquet.instructions[0].accounts = Bytes::from(vec![u8::MAX]);
     assert!(from_parquet(&invalid_parquet, &f.event).is_none());
 }
+
+fn initializer_from_buffa(message: &buffa_pb::Message, metadata: &[dex_pools::TokenAccountMetadata]) -> Option<Candidate> {
+    let ix = message.instructions.first()?;
+    let program = message.account_keys.get(ix.program_id_index as usize)?;
+    let accounts = ix
+        .accounts
+        .iter()
+        .map(|index| message.account_keys.get(*index as usize).map(Vec::as_slice))
+        .collect::<Option<Vec<_>>>()?;
+    assert!(std::ptr::eq(accounts[0], message.account_keys[0].as_slice()));
+    dex_pools::decode_pool_initialization_with_token_accounts(program, &ix.data, &accounts, metadata)
+}
+fn initializer_from_parquet(message: &parquet_pb::Message, metadata: &[dex_pools::TokenAccountMetadata]) -> Option<Candidate> {
+    let ix = message.instructions.first()?;
+    let program = message.account_keys.get(ix.program_id_index as usize)?;
+    let accounts = ix
+        .accounts
+        .iter()
+        .map(|index| message.account_keys.get(*index as usize).map(Bytes::as_ref))
+        .collect::<Option<Vec<_>>>()?;
+    assert!(std::ptr::eq(accounts[0], message.account_keys[0].as_ref()));
+    dex_pools::decode_pool_initialization_with_token_accounts(program, &ix.data, &accounts, metadata)
+}
+
+#[test]
+fn both_models_retain_all_weighted_pool_mints_without_a_substreams_runtime() {
+    use substreams_solana_idls::stabble;
+    let mut keys: Vec<Vec<u8>> = (1..=9).map(|i| vec![i; 32]).collect();
+    keys.push(stabble::PROGRAM_ID.to_vec());
+    let f = Fixture {
+        keys,
+        data: prefixed(
+            "global:initialize",
+            &stabble::instructions::InitializeInstruction {
+                swap_fee: 100,
+                weights: vec![3000, 3000, 4000],
+                max_caps: vec![10000; 3],
+            },
+        ),
+        event: vec![],
+    };
+    let buffa = initializer_from_buffa(&buffa_message(&f), &[]).unwrap();
+    let parquet = initializer_from_parquet(&parquet_message(&f), &[]).unwrap();
+    assert_eq!(buffa, parquet);
+    assert_eq!(buffa.protocol, dex_pools::Protocol::Stabble);
+    assert_eq!(buffa.tokens.iter().map(|token| token.mint).collect::<Vec<_>>(), vec![[7; 32], [8; 32], [9; 32]]);
+    assert!(buffa
+        .tokens
+        .iter()
+        .all(|token| token.vault.is_none() && token.decimals.is_none() && token.token_program.is_none()));
+}
+
+#[test]
+fn both_models_can_supply_explicit_vault_metadata_for_token_swap_creation() {
+    use substreams_solana_idls::spl::token_swap;
+    let mut keys: Vec<Vec<u8>> = (1..=8).map(|i| vec![i; 32]).collect();
+    keys[7] = token::PROGRAM_ID.to_vec();
+    keys.push(token_swap::PROGRAM_ID.to_vec());
+    let mut data = vec![token_swap::instructions::INITIALIZE];
+    data.extend(
+        borsh::to_vec(&token_swap::instructions::InitializeInstruction {
+            fees: token_swap::accounts::Fees {
+                trade_fee_numerator: 25,
+                trade_fee_denominator: 10000,
+                owner_trade_fee_numerator: 5,
+                owner_trade_fee_denominator: 10000,
+                owner_withdraw_fee_numerator: 0,
+                owner_withdraw_fee_denominator: 1,
+                host_fee_numerator: 20,
+                host_fee_denominator: 100,
+            },
+            curve_type: 0,
+            curve_parameters: [0; 32],
+        })
+        .unwrap(),
+    );
+    let f = Fixture { keys, data, event: vec![] };
+    let metadata = vec![
+        dex_pools::TokenAccountMetadata {
+            address: [3; 32],
+            mint: [21; 32],
+            decimals: Some(0),
+            token_program: Some(token::PROGRAM_ID),
+        },
+        dex_pools::TokenAccountMetadata {
+            address: [4; 32],
+            mint: [22; 32],
+            decimals: Some(9),
+            token_program: Some(token::PROGRAM_ID),
+        },
+    ];
+    assert!(initializer_from_buffa(&buffa_message(&f), &[]).is_none());
+    assert!(initializer_from_parquet(&parquet_message(&f), &[]).is_none());
+    let buffa = initializer_from_buffa(&buffa_message(&f), &metadata).unwrap();
+    let parquet = initializer_from_parquet(&parquet_message(&f), &metadata).unwrap();
+    assert_eq!(buffa, parquet);
+    assert_eq!(buffa.tokens[0].decimals, Some(0));
+    assert_eq!(buffa.tokens[1].mint, [22; 32]);
+}

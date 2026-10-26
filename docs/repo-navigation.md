@@ -97,7 +97,11 @@ retain their own first value for each pool over the history they ingest. See the
 [native decoder](../dex-pools/README.md) and
 [pool store package](../dex-swaps-pools/README.md). The package name is
 `dex_swaps_pools`, packed as `spkg/dex-swaps-pools-v0.1.0.spkg`; native consumers
-still use the `dex-pools` library. The value schema lives
+still use the `dex-pools` library. The [pool decoder coverage checklist](pool-decoder-coverage.md)
+tracks every advertised protocol, qualified initialization variants and remaining
+gaps. Native initialization exports also accept explicit token-account metadata
+for protocols whose constructor omits mints. `tokens` retains full multi-asset
+membership and `is_native` distinguishes native SOL. The value schema lives
 in `proto/v1/dex-pools.proto`. Protocol order and source identity are explicit;
 filtered-block indexes must not be treated as original full-block indexes.
 

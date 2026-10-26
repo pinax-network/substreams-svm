@@ -15,10 +15,10 @@ fn package() -> Package {
     let package = Package::open(Path::new(env!("CARGO_MANIFEST_DIR")).join("../spkg/dex-swaps-pools-v0.1.0.spkg"));
     // Built with Rust 1.85.0, workspace feature unification and the path-remap
     // flags documented in docs/releasing.md. Never replace a released package.
-    assert_eq!(package.sha256, "8feffabfeae4f3c5e3c37db6645dce02218f943c0e77399aa6fcda88564b0347");
+    assert_eq!(package.sha256, "a8054927ebda5a1f4e5a2f23a03c4360778a91fbbb15307fa070c4c3a93b00a5");
     assert_eq!(
         package.binary_of("map_pool_entries"),
-        "6e181abb1a106d53e7155b999aa0ac553357063fa1fc96367416994504d0b6c0"
+        "21fe83be2caa86758b272e1d279f29d5da9fc0c46e04ea40fb5b1fa5b633cb2d"
     );
     package
 }
@@ -64,6 +64,11 @@ fn committed_package_runs_one_no_vote_input_and_matches_native_creation_records(
         (
             include_bytes!("../../dex-pools/fixtures/orca-v2-461667419-selected.pb.gz").as_slice(),
             pb::Protocol::PROTOCOL_ORCA_WHIRLPOOL,
+            1,
+        ),
+        (
+            include_bytes!("../../dex-pools/fixtures/aldrin-v2-193097357-selected.pb.gz").as_slice(),
+            pb::Protocol::PROTOCOL_ALDRIN,
             1,
         ),
     ] {
@@ -173,6 +178,7 @@ fn committed_legacy_store_and_hosted_entries_share_payloads_and_first_write_poli
     for bytes in [
         include_bytes!("../../dex-pools/fixtures/pump-current-461766718-selected.pb.gz").as_slice(),
         include_bytes!("../../dex-pools/fixtures/orca-v2-461667419-selected.pb.gz").as_slice(),
+        include_bytes!("../../dex-pools/fixtures/aldrin-v2-193097357-selected.pb.gz").as_slice(),
     ] {
         let block = fixture(bytes);
         let encoded_block = block.encode_to_vec();
@@ -233,5 +239,77 @@ fn committed_legacy_store_and_hosted_entries_share_payloads_and_first_write_poli
             }
         }
     }
-    assert_eq!(stored.len(), 2);
+    assert_eq!(stored.len(), 3);
+}
+
+#[test]
+fn committed_package_keeps_all_weighted_pool_assets_and_initialization_evidence() {
+    use substreams_solana_idls::stabble;
+    let package = package();
+    let mut data = stabble::instructions::INITIALIZE.to_vec();
+    data.extend(
+        borsh::to_vec(&stabble::instructions::InitializeInstruction {
+            swap_fee: 100,
+            weights: vec![3000, 3000, 4000],
+            max_caps: vec![10000; 3],
+        })
+        .unwrap(),
+    );
+    let mut keys = vec![vec![240; 32], stabble::PROGRAM_ID.to_vec()];
+    keys.extend((50..59).map(|i| vec![i; 32]));
+    // Synthetic typed initializer with explicit successful execution evidence;
+    // this checks the package contract, not a captured deployment claim.
+    let block = Block {
+        slot: 123,
+        parent_slot: 120,
+        blockhash: dex_pools::solana::base58::encode([200; 32]),
+        previous_blockhash: dex_pools::solana::base58::encode([199; 32]),
+        transactions: vec![solana::ConfirmedTransaction {
+            transaction: solana::Transaction {
+                signatures: vec![vec![7; 64]],
+                message: solana::Message {
+                    header: solana::MessageHeader {
+                        num_required_signatures: 1,
+                        ..Default::default()
+                    }
+                    .into(),
+                    account_keys: keys,
+                    recent_blockhash: vec![9; 32],
+                    instructions: vec![solana::CompiledInstruction {
+                        program_id_index: 1,
+                        accounts: (2..11).collect(),
+                        data,
+                    }],
+                    ..Default::default()
+                }
+                .into(),
+                ..Default::default()
+            }
+            .into(),
+            meta: solana::TransactionStatusMeta {
+                log_messages: vec![
+                    format!("Program {} invoke [1]", dex_pools::solana::base58::encode(stabble::PROGRAM_ID)),
+                    format!("Program {} success", dex_pools::solana::base58::encode(stabble::PROGRAM_ID)),
+                ],
+                ..Default::default()
+            }
+            .into(),
+        }],
+        ..Default::default()
+    };
+    let native = map_pool_entries_impl(&block).unwrap();
+    assert_eq!(native.entries.len(), 1);
+    let output = run(&package, &block).unwrap();
+    assert_eq!(output, native.encode_to_vec());
+    let entries = SinkEntries::decode_from_slice(&output).unwrap();
+    let pool = pb::Pool::decode_from_slice(&entries.entries[0].value.value).unwrap();
+    assert_eq!(
+        pool.tokens.iter().map(|token| token.mint.clone()).collect::<Vec<_>>(),
+        vec![vec![56; 32], vec![57; 32], vec![58; 32]]
+    );
+    assert!(matches!(pool.creation.evidence, Some(pb::creation::Evidence::Initialization(true))));
+    assert!(pool
+        .tokens
+        .iter()
+        .all(|token| token.vault.is_none() && token.decimals.is_none() && token.token_program.is_none() && !token.is_native));
 }

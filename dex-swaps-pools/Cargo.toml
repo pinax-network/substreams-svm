@@ -16,6 +16,8 @@ buffa-types = { workspace = true }
 substreams = { workspace = true }
 
 [dev-dependencies]
+borsh = "1"
+substreams-solana-idls = { workspace = true }
 flate2 = "1"
 sha2 = "0.10"
 substreams-database-change = { workspace = true }

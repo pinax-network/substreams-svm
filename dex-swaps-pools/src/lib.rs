@@ -81,6 +81,29 @@ pub fn to_proto(pool: &Pool) -> pb::Pool {
         protocol: match pool.protocol {
             Protocol::PumpfunAmm => pb::Protocol::PROTOCOL_PUMPFUN_AMM,
             Protocol::OrcaWhirlpool => pb::Protocol::PROTOCOL_ORCA_WHIRLPOOL,
+            Protocol::RaydiumAmmV4 => pb::Protocol::PROTOCOL_RAYDIUM_AMM_V4,
+            Protocol::RaydiumClmm => pb::Protocol::PROTOCOL_RAYDIUM_CLMM,
+            Protocol::RaydiumCpmm => pb::Protocol::PROTOCOL_RAYDIUM_CPMM,
+            Protocol::MeteoraAmm => pb::Protocol::PROTOCOL_METEORA_AMM,
+            Protocol::MeteoraDlmm => pb::Protocol::PROTOCOL_METEORA_DLMM,
+            Protocol::MeteoraDaam => pb::Protocol::PROTOCOL_METEORA_DAAM,
+            Protocol::Bonkswap => pb::Protocol::PROTOCOL_BONKSWAP,
+            Protocol::PumpfunBondingCurve => pb::Protocol::PROTOCOL_PUMPFUN_BONDING_CURVE,
+            Protocol::Openbook => pb::Protocol::PROTOCOL_OPENBOOK,
+            Protocol::Byreal => pb::Protocol::PROTOCOL_BYREAL,
+            Protocol::Pancakeswap => pb::Protocol::PROTOCOL_PANCAKESWAP,
+            Protocol::RaydiumLaunchpad => pb::Protocol::PROTOCOL_RAYDIUM_LAUNCHPAD,
+            Protocol::Phoenix => pb::Protocol::PROTOCOL_PHOENIX,
+            Protocol::Moonshot => pb::Protocol::PROTOCOL_MOONSHOT,
+            Protocol::Darklake => pb::Protocol::PROTOCOL_DARKLAKE,
+            Protocol::Plasma => pb::Protocol::PROTOCOL_PLASMA,
+            Protocol::Serum => pb::Protocol::PROTOCOL_SERUM,
+            Protocol::SplTokenSwap => pb::Protocol::PROTOCOL_SPL_TOKEN_SWAP,
+            Protocol::Saros => pb::Protocol::PROTOCOL_SAROS,
+            Protocol::Stabble => pb::Protocol::PROTOCOL_STABBLE,
+            Protocol::Boop => pb::Protocol::PROTOCOL_BOOP,
+            Protocol::Dumpfun => pb::Protocol::PROTOCOL_DUMPFUN,
+            Protocol::Aldrin => pb::Protocol::PROTOCOL_ALDRIN,
         }
         .into(),
         pool_address: pool.address.to_vec(),
@@ -89,6 +112,7 @@ pub fn to_proto(pool: &Pool) -> pb::Pool {
             .tokens
             .iter()
             .map(|token| pb::Token {
+                is_native: token.is_native,
                 mint: token.mint.to_vec(),
                 vault: token.vault.map(|value| value.to_vec()),
                 decimals: token.decimals.map(u32::from),
@@ -102,6 +126,7 @@ pub fn to_proto(pool: &Pool) -> pb::Pool {
             input_transaction_index: creation.transaction_index,
             instruction: MessageField::some(position(creation.instruction)),
             evidence: Some(match creation.evidence {
+                EvidencePosition::Initialization => pb::creation::Evidence::Initialization(true),
                 EvidencePosition::Instruction(value) => pb::creation::Evidence::EventInstruction(Box::new(position(value))),
                 EvidencePosition::Log { log_index } => pb::creation::Evidence::LogIndex(log_index),
             }),
