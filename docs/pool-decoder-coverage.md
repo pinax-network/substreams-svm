@@ -85,6 +85,28 @@ The shared IDL also contains Raydium Stable initialization types. There is no
 corresponding advertised `dex/raydium/stable` package in this checklist; adding
 that program is an explicit coverage change.
 
+### Missing creation contracts
+
+The final source audit did not qualify additional initializers for the seven
+layout gaps. Lifinity's
+[`@lifinity/sdk-v2@2.0.3` IDL](https://unpkg.com/@lifinity/sdk-v2@2.0.3/lib/idl/lifinity_amm_v2.d.ts)
+and its program-owned on-chain IDL expose swap, deposit and withdrawal only.
+The published `obric-solana@1.1.0` package includes admin constructors, but binds
+them to different program addresses (`obriQD…` / `obr3KR…`) from the selected
+Obric programs (`coUnmi…` / `ob2wXV…`); those layouts cannot establish these
+programs' creation accounts. SolFi and GoonFi swap integrations do not establish
+initialization layouts, and newer GoonFi V2 references concern a different
+program. Heaven's
+[official integration repository](https://github.com/heavenxyz/heaven-integration/blob/b963f63cab94ba6e28c98b5fb3975e9edd4af9cd/README.md)
+describes private integration.
+
+A finalized RPC audit at slot 461787019 confirmed Lifinity's limited IDL and
+found no canonical Anchor IDL account for the other six selected programs.
+Missing IDL accounts do not prove that initialization is impossible. Closing
+these gaps requires an exact-program creation contract or independently
+qualified historical creation evidence; copying another deployment's layout
+or inferring pool identity from a swap is insufficient.
+
 ### Programs requiring different contracts
 
 Sanctum's [official deployed-program list](https://learn.sanctum.so/docs/for-developers/deployed-programs)
