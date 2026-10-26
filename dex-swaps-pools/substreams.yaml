@@ -1,0 +1,72 @@
+specVersion: v0.1.0
+package:
+  name: dex_swaps_pools
+  version: v0.1.0
+  url: https://github.com/pinax-network/substreams-svm
+  description: Verified DEX pool, market and bonding-curve identities for Hosted Store and legacy stores; see the coverage checklist for supported layouts.
+  image: ../image.png
+
+imports:
+  solana_common: ../spkg/solana-common-v0.4.0.spkg
+
+binaries:
+  default:
+    type: wasm/rust-v1+wasm-bindgen-shims
+    file: ../target/wasm32-unknown-unknown/release/dex_swaps_pools.wasm
+
+protobuf:
+  files:
+    - v1/dex-pools.proto
+  importPaths:
+    - ../proto
+  descriptorSets:
+    - module: buf.build/streamingfast/substreams-foundational-store@f3ab5976b9ba4f9bac28b26271fca7d7
+  excludePaths:
+    - sf/substreams
+    - google
+
+modules:
+  - name: map_pool_creations
+    kind: map
+    doc: |
+      Exactly one no-vote Block input; protocol IDL decoders run in this module.
+      Emits successful pool initialization observations for independent store branches.
+      Historical completeness depends on the selected start slot and supported
+      initialization variants. No store lookup or RPC bootstrap.
+    inputs:
+      - map: solana_common:blocks_without_votes
+    output:
+      type: proto:dex.pools.v1.Pools
+
+  - name: map_pool_entries
+    kind: map
+    doc: |
+      Hosted Store branch: emits immutable pool identities as v2 SinkEntries
+      with raw 32-byte address keys and if_not_exist=true. Empty blocks emit
+      empty entries so ingestion can advance. Independent of the legacy store.
+    inputs:
+      - map: map_pool_creations
+    output:
+      type: proto:sf.substreams.foundational_store.model.v2.SinkEntries
+
+  - name: store_pools
+    kind: store
+    updatePolicy: set_if_not_exists
+    valueType: proto:dex.pools.v1.Pool
+    doc: |
+      Legacy store branch: canonical base58 pool-address keys, storing the same
+      Pool payload as the Hosted Store. Writes use ordinal zero; this registry
+      does not provide instruction-order timing. Inspect Pool.creation provenance.
+    inputs:
+      - map: map_pool_creations
+
+  - name: map_pools
+    kind: map
+    doc: Emits only Create deltas from the legacy store as newly registered pools.
+    inputs:
+      - store: store_pools
+        mode: deltas
+    output:
+      type: proto:dex.pools.v1.Pools
+
+network: solana

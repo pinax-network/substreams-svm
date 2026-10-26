@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package dex.pools.v1;
+
+// Successful pool initialization observations from one block, or newly created
+// legacy store entries when emitted by map_pools.
+message Pools {
+  repeated Pool pools = 1;
+}
+
+// An immutable identity, written only after a successful, attributed pool
+// initialization. Hosted Store keys are the raw 32-byte pool_address.
+message Pool {
+  Protocol protocol = 1;
+  bytes pool_address = 2;
+  bytes program_id = 3;
+  // Protocol order: Pump.fun base/quote; Orca A/B. Never swap input/output order.
+  repeated Token tokens = 4;
+  Creation creation = 5;
+}
+
+enum Protocol {
+  PROTOCOL_UNSPECIFIED = 0;
+  PROTOCOL_PUMPFUN_AMM = 1;
+  PROTOCOL_ORCA_WHIRLPOOL = 2;
+  PROTOCOL_RAYDIUM_AMM_V4 = 3;
+  PROTOCOL_RAYDIUM_CLMM = 4;
+  PROTOCOL_RAYDIUM_CPMM = 5;
+  PROTOCOL_METEORA_AMM = 6;
+  PROTOCOL_METEORA_DLMM = 7;
+  PROTOCOL_METEORA_DAAM = 8;
+  PROTOCOL_BONKSWAP = 9;
+  PROTOCOL_PUMPFUN_BONDING_CURVE = 10;
+  PROTOCOL_OPENBOOK = 11;
+  PROTOCOL_BYREAL = 12;
+  PROTOCOL_PANCAKESWAP = 13;
+  PROTOCOL_RAYDIUM_LAUNCHPAD = 14;
+  PROTOCOL_PHOENIX = 15;
+  PROTOCOL_MOONSHOT = 16;
+  PROTOCOL_DARKLAKE = 17;
+  PROTOCOL_PLASMA = 18;
+  PROTOCOL_SERUM = 19;
+  PROTOCOL_SPL_TOKEN_SWAP = 20;
+  PROTOCOL_SAROS = 21;
+  PROTOCOL_STABBLE = 22;
+  PROTOCOL_BOOP = 23;
+  PROTOCOL_DUMPFUN = 24;
+  PROTOCOL_ALDRIN = 25;
+}
+
+message Token {
+  bytes mint = 1;
+  optional bytes vault = 2;
+  optional uint32 decimals = 3;
+  optional bytes token_program = 4;
+  // True only for native SOL; mint then uses the documented native asset sentinel.
+  bool is_native = 5;
+}
+
+message InstructionPosition {
+  uint32 instruction_index = 1;
+  optional uint32 inner_instruction_index = 2;
+}
+
+message Creation {
+  uint64 slot = 1;
+  string blockhash = 2;
+  bytes signature = 3;
+  // Index in the supplied block. With blocks_without_votes this is NOT the
+  // transaction's index in the original, unfiltered block. Use the signature.
+  uint32 input_transaction_index = 4;
+  // The initialization invocation, distinct from the event's self-CPI.
+  InstructionPosition instruction = 5;
+  oneof evidence {
+    InstructionPosition event_instruction = 6;
+    uint32 log_index = 7;
+    // The initialization instruction itself committed; no event metadata was used.
+    bool initialization = 8;
+  }
+}

@@ -1,0 +1,23 @@
+[package]
+name = "dex-pools-native-consumer-tests"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Isolate this consumer so the main workspace cannot enable runtime features
+# through feature unification, or inherit this test's Prost dependency.
+[workspace]
+
+[dependencies]
+dex-pools = { path = "..", default-features = false }
+
+[dev-dependencies]
+borsh = "1"
+bs58 = "0.5"
+bytes = "1"
+prost = "0.14"
+sha2 = "0.10"
+solana-program = "2.3.0"
+substreams-solana-core = "=0.16.0"
+substreams-solana-idls = { git = "https://github.com/pinax-network/substreams-solana-idls", rev = "665035860128e892504c37e2bfa7b7b96063cd42" }
+

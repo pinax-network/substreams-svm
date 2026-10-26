@@ -1,0 +1,25 @@
+[package]
+name = "dex-swaps-pools"
+description = "Legacy and Hosted Store adapters over the reusable Solana pool decoder"
+edition = { workspace = true }
+version = "0.1.0"
+license = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+dex-pools = { path = "../dex-pools" }
+proto = { path = "../proto" }
+buffa = { workspace = true }
+buffa-types = { workspace = true }
+substreams = { workspace = true }
+
+[dev-dependencies]
+borsh = "1"
+substreams-solana-idls = { workspace = true }
+flate2 = "1"
+sha2 = "0.10"
+substreams-database-change = { workspace = true }
+wasmi = { version = "=0.46.0", default-features = false, features = ["std"] }
+

@@ -4,6 +4,8 @@ members = [
   "svm-balances",
   "svm-dex",
   "dex-swaps",
+  "dex-pools",
+  "dex-swaps-pools",
   "svm-transfers",
   "svm-accounts",
   "svm-metadata",
@@ -87,9 +89,9 @@ bs58 = "0.5.1"
 substreams = "0.8.0"
 substreams-abis = "2.0.0"
 substreams-solana = "0.16.0"
-# Buffa-native Solana decoder API (v2 line, includes #147 decoder fixes); no
-# Substreams runtime in native consumers.
-substreams-solana-idls = { git = "https://github.com/pinax-network/substreams-solana-idls", rev = "aed8bcb1fb61950554df0eab0e4d8f7989aebfe1" }
+# Buffa-native Solana decoder API with current pool-creation layouts and typed
+# accounts; no Substreams runtime in native consumers.
+substreams-solana-idls = { git = "https://github.com/pinax-network/substreams-solana-idls", rev = "665035860128e892504c37e2bfa7b7b96063cd42" }
 spl-token = "9.0.0"
 # SDK-free error alias fix, pending upstream review.
 substreams-solana-program-instructions = { git = "https://github.com/DenisCarriere/substreams-solana-program-instructions", rev = "10b5b8d402b350b015c8f15af6ff3cac2b44729c" }
