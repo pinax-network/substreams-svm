@@ -9,6 +9,14 @@ shared pool and Drift's market model, which require additional data contracts;
 neither is counted as covered or not applicable. This does not provide a complete historical registry of
 every advertised DEX or every version of an implemented protocol.
 
+The initial release scope is the 25 implemented families. The nine gaps are
+explicitly deferred and do not block that scope: [#236](https://github.com/pinax-network/substreams-svm/issues/236)
+tracks the seven missing creation contracts,
+[#237](https://github.com/pinax-network/substreams-svm/issues/237) tracks Sanctum
+membership, and [#238](https://github.com/pinax-network/substreams-svm/issues/238)
+tracks Drift market identities. They remain unsupported until those issues'
+evidence and implementation criteria are met.
+
 The source of implemented coverage is [`dex-pools`](../dex-pools/src/lib.rs),
 its [matched-event decoder](../dex-pools/src/decode.rs), and its
 [initialization adapters](../dex-pools/src/initialization/mod.rs). The shared IDL
