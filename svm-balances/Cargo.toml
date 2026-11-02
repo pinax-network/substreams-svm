@@ -14,3 +14,8 @@ substreams-database-change = { workspace = true }
 
 proto = { path = "../proto" }
 common = { path = "../common" }
+
+[dev-dependencies]
+buffa = { workspace = true }
+flate2 = "1"
+spl-token-common = { path = "../spl/token-common" }

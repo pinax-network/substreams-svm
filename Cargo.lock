@@ -3352,8 +3352,11 @@ dependencies = [
 name = "svm-balances"
 version = "0.0.0"
 dependencies = [
+ "buffa",
  "common",
+ "flate2",
  "proto",
+ "spl-token-common",
  "substreams",
  "substreams-database-change",
  "substreams-solana",

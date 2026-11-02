@@ -113,7 +113,7 @@ jobs:
             exit 1
           fi
       - name: Test native token decoding and account and DEX database output
-        run: cargo test --locked -p common -p native-token -p svm-accounts -p svm-dex
+        run: cargo test --locked -p common -p native-token -p svm-accounts -p svm-balances -p svm-dex
       - name: Test the SPL transfer projector, parser and transfer database output
         run: cargo test --locked -p spl-transfers -p spl-transfers-substreams -p spl-token-common -p svm-transfers
       - name: Build all Substreams WASM modules
