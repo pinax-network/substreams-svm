@@ -9,7 +9,52 @@ pub fn unpack_transfers(instruction: &InstructionView) -> Option<pb::instruction
     try_unpack_transfers(instruction).ok().flatten()
 }
 
+/// `SystemInstruction::CreateAccountAllowPrefund` (SIMD-0312), which the pinned
+/// `solana-program` enum does not have. Fixed-width bincode, like every System
+/// instruction: this discriminant, then `lamports: u64`, `space: u64` and
+/// `owner: Pubkey`.
+const CREATE_ACCOUNT_ALLOW_PREFUND: u32 = 13;
+const CREATE_ACCOUNT_ALLOW_PREFUND_LEN: usize = 4 + 8 + 8 + 32;
+
+/// Decodes `CreateAccountAllowPrefund`, or returns `None` for any other
+/// discriminant. Its accounts are the reverse of `CreateAccount`: the new
+/// account first, then the funding account, which is present only when
+/// `lamports > 0`. With lamports it moves them from the funding account to the
+/// new account exactly as `CreateAccount` does, so it is reported as one.
+fn try_unpack_create_account_allow_prefund(instruction: &InstructionView) -> Option<Result<Option<pb::instruction::Instruction>, ()>> {
+    let data = instruction.data();
+    if data.len() < 4 || u32::from_le_bytes(data[..4].try_into().ok()?) != CREATE_ACCOUNT_ALLOW_PREFUND {
+        return None;
+    }
+    Some((|| {
+        // Trailing bytes are ignored, as bincode ignores them for the other variants.
+        let body = data.get(4..CREATE_ACCOUNT_ALLOW_PREFUND_LEN).ok_or(())?;
+        let lamports = u64::from_le_bytes(body[..8].try_into().map_err(|_| ())?);
+        let space = u64::from_le_bytes(body[8..16].try_into().map_err(|_| ())?);
+        let owner = body[16..48].to_vec();
+        if lamports == 0 {
+            return Ok(None);
+        }
+        let accounts = instruction.accounts();
+        let new_account = accounts.first().map(|value| value.0.to_vec()).ok_or(())?;
+        let source = accounts.get(1).map(|value| value.0.to_vec()).ok_or(())?;
+        Ok(Some(pb::instruction::Instruction::CreateAccount(
+            pb::CreateAccount {
+                source,
+                new_account,
+                lamports,
+                space,
+                owner,
+            }
+            .into(),
+        )))
+    })())
+}
+
 pub fn try_unpack_transfers(instruction: &InstructionView) -> Result<Option<pb::instruction::Instruction>, ()> {
+    if let Some(decoded) = try_unpack_create_account_allow_prefund(instruction) {
+        return decoded;
+    }
     let cfg = config::standard()
         .with_limit::<4096>()
         .with_fixed_int_encoding() // NOT variable‑int
