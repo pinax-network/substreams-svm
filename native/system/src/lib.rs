@@ -234,6 +234,71 @@ mod tests {
         assert_eq!(result.operations[1].instruction.stack_height, 2);
     }
 
+    /// `CreateAccountAllowPrefund` as mainnet slot 467831435 carries it: a CPI of
+    /// 52 bytes with the new account first and the funding account second.
+    fn allow_prefund_transaction(lamports: u64, accounts: Vec<u8>, data_len: usize) -> ConfirmedTransaction {
+        let mut data = vec![13, 0, 0, 0];
+        data.extend_from_slice(&lamports.to_le_bytes());
+        data.extend_from_slice(&91u64.to_le_bytes());
+        data.extend_from_slice(&[0x44; 32]);
+        data.resize(data_len, 0);
+        let mut transaction = transfer_transaction();
+        let message = transaction.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap();
+        // Account 0 funds, account 1 is created: the reverse of the instruction's own order.
+        message.instructions[0].accounts = accounts;
+        message.instructions[0].data = data;
+        transaction
+    }
+
+    #[test]
+    fn create_account_allow_prefund_is_a_create_account_with_reversed_accounts() {
+        let block = block(allow_prefund_transaction(1_112_520, vec![1, 0], 52));
+        let projected = project(&block).expect("projection");
+        assert_eq!(projected.operations.len(), 1);
+        let Some(pb::instruction::Instruction::CreateAccount(created)) = &projected.operations[0].instruction.instruction else {
+            panic!("create account")
+        };
+        assert_eq!(created.source, vec![0x11; 32]);
+        assert_eq!(created.new_account, vec![0x22; 32]);
+        assert_eq!(created.lamports, 1_112_520);
+        assert_eq!(created.space, 91);
+        assert_eq!(created.owner, vec![0x44; 32]);
+
+        // The legacy wrapper reports the same row, and trailing bytes change nothing.
+        let decoded = process_transaction(allow_prefund_transaction(1_112_520, vec![1, 0], 60)).expect("decoded");
+        assert_eq!(decoded.instructions.len(), 1);
+        assert!(matches!(
+            decoded.instructions[0].instruction,
+            Some(pb::instruction::Instruction::CreateAccount(_))
+        ));
+    }
+
+    #[test]
+    fn create_account_allow_prefund_without_lamports_moves_nothing() {
+        // The funding account is optional when no lamports move.
+        for accounts in [vec![1], vec![1, 0]] {
+            let block = block(allow_prefund_transaction(0, accounts, 52));
+            let projected = project(&block).expect("projection");
+            assert!(projected.operations.is_empty());
+        }
+    }
+
+    #[test]
+    fn malformed_create_account_allow_prefund_and_unknown_instructions_fail_closed() {
+        // Short data, a missing funding account, and the next unknown discriminant.
+        let short = allow_prefund_transaction(1, vec![1, 0], 51);
+        let unfunded = allow_prefund_transaction(1, vec![1], 52);
+        let mut unknown = allow_prefund_transaction(1, vec![1, 0], 52);
+        unknown.transaction.as_option_mut().unwrap().message.as_option_mut().unwrap().instructions[0].data[0] = 14;
+        for transaction in [short, unfunded, unknown] {
+            assert!(matches!(
+                project(&block(transaction.clone())),
+                Err(ProjectError::InvalidSystemInstruction { .. })
+            ));
+            assert!(process_transaction(transaction).unwrap().instructions.is_empty());
+        }
+    }
+
     #[test]
     fn malformed_input_and_capacity_return_no_partial_projection() {
         let valid = block(transfer_transaction());

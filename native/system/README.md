@@ -10,6 +10,7 @@
 - [x] `TransferWithSeed`
 - [x] `CreateAccount`
 - [x] `CreateAccountWithSeed`
+- [x] `CreateAccountAllowPrefund` (SIMD-0312), reported as `CreateAccount`
 - [x] `WithdrawNonceAccount`
 
 ### Balances
@@ -46,7 +47,9 @@ and protobuf allocations must also be bounded by the caller. Capacity or malform
 input returns an error, never a partial prefix.
 
 Coverage is positive-lamport Transfer, TransferWithSeed, CreateAccount,
-CreateAccountWithSeed and WithdrawNonceAccount. Zero amounts are omitted; self
+CreateAccountWithSeed, CreateAccountAllowPrefund and WithdrawNonceAccount.
+CreateAccountAllowPrefund lists the new account before the funding account and
+is reported as a CreateAccount row from the funding account. Zero amounts are omitted; self
 transfers remain observed instructions. Fees, rewards, stake instructions and
 arbitrary account balance changes are not transfers. In the existing database
 formatter, only ordinary Transfer feeds `system_transfer`; seeded transfers and
